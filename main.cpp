@@ -9,7 +9,7 @@
 #include <WS2tcpip.h>
 #include <WinSock2.h>
 #include <Windows.h>
-#include "Action.h"
+#include "Client.h"
 
 #include <chrono>
 #include <thread>
@@ -18,10 +18,12 @@
 
 
 int main() {
-	Action handler;
+	Client client;
+	utils fileUtils;
 	std::string ip_addr;
 	uint16_t port;
-	if (!handler.getServerInfo(ip_addr, port))
+
+	if (!client.getServerInfo(fileUtils, ip_addr, port))
 		return 1;
 	char uuid[CLIENT_ID_SIZE] = { 0 };
 	char username[USER_LENGTH] = { 0 };
@@ -38,20 +40,20 @@ int main() {
 	bool is_new_user = true;
 	bool status;
 
-	//handler.registerUser(sock, &sa, uuid);
+	//client.registerUser(sock, &sa, uuid);
 	try {
-		status = handler.registerUser(sock, &sa, uuid);
+		status = client.registerUser(fileUtils, sock, &sa, uuid);
 	}
 	catch (std::exception& e) {
 		// maybe remove
 		std::cerr << "Exception caught: " << e.what() << std::endl;
 		is_new_user = false;
-		status = handler.loginUser(sock, &sa, username, uuid, AESEncrypted);
+		status = client.loginUser(sock, &sa, username, uuid, AESEncrypted);
 	}
 
 	if (status) {
 		sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		status = handler.sendFile(sock, &sa, uuid, AESEncrypted, is_new_user);
+		status = client.sendFile(fileUtils, sock, &sa, uuid, AESEncrypted, is_new_user);
 	}
 		WSACleanup();
 

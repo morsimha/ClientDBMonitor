@@ -1,16 +1,14 @@
-#include "Action.h"
-
+#include "Client.h"
+// TODO Consider class or any way that doesnt require utils init every time.
 
 /* Sends the RSA Public Key and inserts the received AES key into AESKey. */
-bool Action::sendPubKey(const SOCKET& sock, sockaddr_in* sa, unsigned char* AESKey, char* uuid) const
+bool Client::sendPubKey(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, unsigned char* AESKey, char* uuid) const
 {
 	RSAPrivateWrapper rsapriv;
 	std::string pubkey = rsapriv.getPublicKey();
 	RSAPublicWrapper rsapub(pubkey);
-	utils fileHandler;
 	std::fstream newFile;
 	std::fstream privFile;
-
 
 	try {
 		int connRes = connect(sock, (struct sockaddr*)sa, sizeof(*sa));
@@ -21,18 +19,18 @@ bool Action::sendPubKey(const SOCKET& sock, sockaddr_in* sa, unsigned char* AESK
 	}
 
 	std::string username;
-	if (fileHandler.isExistent(ME_INFO)) {
-		if (!fileHandler.openFile(ME_INFO, newFile, false))
+	if (fileUtils.isExistent(ME_INFO)) {
+		if (!fileUtils.openFile(ME_INFO, newFile, false))
 			return false;
 		std::getline(newFile, username);
-		fileHandler.closeFile(newFile);
+		fileUtils.closeFile(newFile);
 	}
-	else if (fileHandler.isExistent(TRANSFER_INFO)) {
-		if (!fileHandler.openFile(TRANSFER_INFO, newFile, false))
+	else if (fileUtils.isExistent(TRANSFER_INFO)) {
+		if (!fileUtils.openFile(TRANSFER_INFO, newFile, false))
 			return false;
 		std::getline(newFile, username);
 		std::getline(newFile, username); // Second line.
-		fileHandler.closeFile(newFile);
+		fileUtils.closeFile(newFile);
 	}
 	else {
 		std::cerr << "Error: Transfer and info files do not exist. " << std::endl;
@@ -42,22 +40,22 @@ bool Action::sendPubKey(const SOCKET& sock, sockaddr_in* sa, unsigned char* AESK
 	std::string privkey = rsapriv.getPrivateKey();
 	std::string encoded_privkey = Base64Wrapper::encode(privkey);
 
-	if (!fileHandler.openFile(ME_INFO, newFile, true))
+	if (!fileUtils.openFile(ME_INFO, newFile, true))
 		return false;
 
-	fileHandler.writeToFile(newFile, "\n", strlen("\n"));
-	fileHandler.writeToFile(newFile, encoded_privkey.c_str(), encoded_privkey.length());
-	fileHandler.closeFile(newFile);
+	fileUtils.writeToFile(newFile, "\n", strlen("\n"));
+	fileUtils.writeToFile(newFile, encoded_privkey.c_str(), encoded_privkey.length());
+	fileUtils.closeFile(newFile);
 
 	// Open or create the file "priv.key" for writing
-	if (!fileHandler.openFileOverwrites(PRIV_KEY, privFile))
+	if (!fileUtils.openFileOverwrites(PRIV_KEY, privFile))
 		return false;
 
 	// Write the private key to "priv.key"
-	fileHandler.writeToFile(privFile, encoded_privkey.c_str(), encoded_privkey.length());
+	fileUtils.writeToFile(privFile, encoded_privkey.c_str(), encoded_privkey.length());
 
 	// Close the file "priv.key"
-	fileHandler.closeFile(privFile);
+	fileUtils.closeFile(privFile);
 
 	Request req;
 	char requestBuffer[PACKET_SIZE] = { 0 };
@@ -100,9 +98,8 @@ bool Action::sendPubKey(const SOCKET& sock, sockaddr_in* sa, unsigned char* AESK
 }
 
 /* Places the server info into the received variables. Returns true upon success and false upon failure. */
-bool Action::getServerInfo(std::string& ip_address, uint16_t& port) const
+bool Client::getServerInfo(utils fileUtils, std::string& ip_address, uint16_t& port) const
 {
-	utils fileUtils;
 	std::fstream newFile;
 	std::string fullLine;
 	if (!fileUtils.isExistent(TRANSFER_INFO)) {
@@ -133,9 +130,8 @@ bool Action::getServerInfo(std::string& ip_address, uint16_t& port) const
 }
 
 /* Deals with user registration to the server. */
-bool Action::registerUser(const SOCKET& sock, struct sockaddr_in* sa, char* uuid) const
+bool Client::registerUser(utils fileUtils, const SOCKET& sock, struct sockaddr_in* sa, char* uuid) const
 {
-	utils fileUtils;
 	std::fstream newFile;
 	std::string username;
 	std::string uuid_from_ME;
@@ -240,9 +236,8 @@ bool Action::registerUser(const SOCKET& sock, struct sockaddr_in* sa, char* uuid
 	return false;
 }
 
-bool Action::decryptAESKey(const char* uuid, const char* encryptedAESKey, unsigned char* AESKey) const
+bool Client::decryptAESKey(utils fileUtils, const char* uuid, const char* encryptedAESKey, unsigned char* AESKey) const
 {
-	utils fileUtils;
 	RSAPrivateWrapper rsapriv2;
 	std::fstream privFile;
 
@@ -283,19 +278,18 @@ bool Action::decryptAESKey(const char* uuid, const char* encryptedAESKey, unsign
 }
 
 /* The function handles sending a file over to the server. */
-bool Action::sendFile(const SOCKET& sock, sockaddr_in* sa, char* uuid, char* EncryptedAESKey,bool isNewUser) const
+bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char* uuid, char* EncryptedAESKey,bool isNewUser) const
 {
 	unsigned char AESKey[AES_KEY_LEN] = { 0 };
-	utils fileUtils;
 	std::fstream requestedFile;
 	char requestBuffer[PACKET_SIZE] = { 0 };
 
 	if (isNewUser){
-		if (!sendPubKey(sock, sa, AESKey, uuid))
+		if (!sendPubKey(fileUtils, sock, sa, AESKey, uuid))
 			return false;
 			}
 	else {
-		if (!decryptAESKey(uuid, EncryptedAESKey, AESKey))
+		if (!decryptAESKey(fileUtils, uuid, EncryptedAESKey, AESKey))
 			return false;
 		try {
 			int connRes = connect(sock, (struct sockaddr*)sa, sizeof(*sa)); /* Connection to the server */
@@ -455,7 +449,7 @@ bool Action::sendFile(const SOCKET& sock, sockaddr_in* sa, char* uuid, char* Enc
 	return true;
 }
 
-bool Action::loadClientInfo(char* username) const {
+bool Client::loadClientInfo(char* username) const {
 	utils fileUtils;
 	std::fstream newFile;
 	std::string usernameStr;
@@ -489,7 +483,7 @@ bool Action::loadClientInfo(char* username) const {
 	return true;  // Return true if username was successfully loaded
 }
 
-bool Action::loginUser(const SOCKET& sock, struct sockaddr_in* sa, char* username, char* uuid, char* AESKey) const {
+bool Client::loginUser(const SOCKET& sock, struct sockaddr_in* sa, char* username, char* uuid, char* AESKey) const {
 	if (!loadClientInfo(username)) {
 		std::cerr << "Error: Failed to load client info." << std::endl;
 	}

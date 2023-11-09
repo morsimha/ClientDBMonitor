@@ -1,5 +1,5 @@
 /*
-Action.h
+Client.h
 */
 
 #pragma once
@@ -34,19 +34,19 @@ Action.h
 #define MAX_TRIES 3
 
 
-class Action {
+class Client {
 	enum Request_Code { REGISTER_REQUEST = 1025, PUB_KEY_SEND = 1026, LOGIN_REQUEST = 1027, FILE_SEND = 1028, CRC_OK = 1029, CRC_INVALID_RETRY = 1030, CRC_INVALID_EXIT = 1031 };
 	enum Response_Code { REGISTER_SUCCESS = 2100, REGISTER_ERROR = 2101,PUB_KEY_RECEVIED = 2102, FILE_OK_CRC = 2103, MSG_RECEIVED = 2104, LOGIN_SUCCESS = 2105, LOGIN_ERROR = 2106, GENERAL_ERROR = 2107 };
-	bool sendPubKey(const SOCKET&, struct sockaddr_in*, unsigned char*, char*) const;
+	bool sendPubKey(utils fileUtils, const SOCKET&, struct sockaddr_in*, unsigned char*, char*) const;
 	bool loadClientInfo(char* uuid) const;  // New method declaration
-	bool decryptAESKey(const char* uuid, const char* encryptedAESKey, unsigned char* AESKey) const;
+	bool decryptAESKey(utils fileUtils, const char* uuid, const char* encryptedAESKey, unsigned char* AESKey) const;
 	std::string retrievePrivateKey() const;
 	unsigned char AESKey[AES_KEY_LEN] = {0};
 	char uuid[CLIENT_ID_SIZE] = { 0 };
 
 public:
-	bool getServerInfo(std::string&, uint16_t&) const;
-	bool registerUser(const SOCKET&, struct sockaddr_in*, char*) const;
-	bool sendFile(const SOCKET&, struct sockaddr_in*, char*, char*, bool) const;
+	bool getServerInfo(utils fileUtils, std::string&, uint16_t&) const;
+	bool registerUser(utils fileUtils, const SOCKET&, struct sockaddr_in*, char*) const;
+	bool sendFile(utils fileUtils, const SOCKET&, struct sockaddr_in*, char*, char*, bool) const;
 	bool loginUser(const SOCKET & sock, struct sockaddr_in* sa, char*, char*, char*) const;  // New method declaration
 };

@@ -147,7 +147,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Action.cpp" />
+    <ClCompile Include="Client.cpp" />
     <ClCompile Include="AESWrapper.cpp" />
     <ClCompile Include="Base64Wrapper.cpp" />
     <ClCompile Include="CRC.cpp" />
@@ -158,7 +158,7 @@
     <ClCompile Include="RSAWrapper.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Action.h" />
+    <ClInclude Include="Client.h" />
     <ClInclude Include="AESWrapper.h" />
     <ClInclude Include="Base64Wrapper.h" />
     <ClInclude Include="CRC.h" />

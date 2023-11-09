@@ -12,7 +12,7 @@ Request.h
 #define PACKET_SIZE 1024
 
 class Request {
-	friend class Action;
+	friend class Client;
 #pragma pack(push, 1)
 	struct RequestFormat {
 		union URequestHeader {
