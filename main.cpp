@@ -22,7 +22,7 @@ int main() {
 	std::string ip_addr;
 	uint16_t port;
 	if (!handler.getServerInfo(ip_addr, port))
-		exit(1);
+		return 1;
 	char uuid[CLIENT_ID_SIZE] = { 0 };
 	char username[USER_LENGTH] = { 0 };
 	char AESEncrypted[ENC_AES_LEN] = { 0 };
@@ -35,25 +35,27 @@ int main() {
 	sa.sin_port = htons(port);	
 	inet_pton(AF_INET, ip_addr.c_str(), &sa.sin_addr); 
 
-	//handler.registerUser(sock, &sa, uuid);
-	//bool is_new_user = handler.registerUser(sock, &sa, uuid);
-	bool is_new_user = handler.loginUser(sock, &sa, username, uuid, AESEncrypted);
-
-	/*
-	bool is_new_user = false;
+	bool is_new_user = true;
+	bool status;
 
 	//handler.registerUser(sock, &sa, uuid);
 	try {
-		bool is_new_user = handler.registerUser(sock, &sa, uuid);
+		status = handler.registerUser(sock, &sa, uuid);
 	}
 	catch (std::exception& e) {
-		handler.loginUser(sock, &sa, username, uuid, AESEncrypted);
+		// maybe remove
+		std::cerr << "Exception caught: " << e.what() << std::endl;
+		is_new_user = false;
+		status = handler.loginUser(sock, &sa, username, uuid, AESEncrypted);
 	}
-	*/
 
-	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	handler.sendFile(sock, &sa, uuid, AESEncrypted, is_new_user);
-	
-	WSACleanup();
-	return 0;
+	if (status) {
+		sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		status = handler.sendFile(sock, &sa, uuid, AESEncrypted, is_new_user);
+	}
+		WSACleanup();
+
+	if (status)
+		return 0;
+	return 1;
 }

@@ -1,8 +1,8 @@
-#include "FileHandler.h"
+#include "utils.h"
 
 /* Opens the file as binary, and returns true upon success. If the directories don't exist, they will be created. */
-bool FileHandler::openFile(const std::string& fileDestination, std::fstream& thisFile, bool writeFlag)
-{
+bool utils::openFile(const std::string& fileDestination, std::fstream& thisFile, bool writeFlag)
+{	
 	std::filesystem::path pathToCheck = fileDestination;
 	try {
 		std::filesystem::create_directories(pathToCheck.parent_path());
@@ -18,7 +18,7 @@ bool FileHandler::openFile(const std::string& fileDestination, std::fstream& thi
 }
 
 /* Opens the file as binary, and returns true upon success. If the directories don't exist, they will be created. */
-bool FileHandler::openFileBin(const std::string& fileDestination, std::fstream& thisFile, bool writeFlag)
+bool utils::openFileBin(const std::string& fileDestination, std::fstream& thisFile, bool writeFlag)
 {
 	std::filesystem::path pathToCheck = fileDestination;
 	try {
@@ -34,7 +34,7 @@ bool FileHandler::openFileBin(const std::string& fileDestination, std::fstream& 
 }
 
 /* Opens the file as binary, and returns true upon success, overwrites written content. If the directories don't exist, they will be created. */
-bool FileHandler::openFileOverwrites(const std::string& fileDestination, std::fstream& thisFile)
+bool utils::openFileOverwrites(const std::string& fileDestination, std::fstream& thisFile)
 {
 	std::filesystem::path pathToCheck = fileDestination;
 	try {
@@ -51,7 +51,7 @@ bool FileHandler::openFileOverwrites(const std::string& fileDestination, std::fs
 }
 
 /* Closes a file, and returns true upon success. */
-bool FileHandler::closeFile(std::fstream& thisFile)
+bool utils::closeFile(std::fstream& thisFile)
 {
 	try {
 		thisFile.close();
@@ -64,7 +64,7 @@ bool FileHandler::closeFile(std::fstream& thisFile)
 }
 
 /* Writes content into a file. fstream object is received, so the calling function is responsible for opening. */
-bool FileHandler::writeToFile(std::fstream& thisFile, const char* content, uint32_t size)
+bool utils::writeToFile(std::fstream& thisFile, const char* content, uint32_t size)
 {
 	try {
 		thisFile.write(content, size);
@@ -77,7 +77,7 @@ bool FileHandler::writeToFile(std::fstream& thisFile, const char* content, uint3
 }
 
 /* Reads the contents of a file into the payload buffer */
-bool FileHandler::readFileIntoPayload(std::fstream& thisFile, char* payload, uint32_t count)
+bool utils::readFileIntoPayload(std::fstream& thisFile, char* payload, uint32_t count)
 {
 	try {
 		thisFile.read(payload, count);
@@ -91,7 +91,7 @@ bool FileHandler::readFileIntoPayload(std::fstream& thisFile, char* payload, uin
 }
 
 /* Given a buffer, writes the buffer in hex into a file. (Inspired by the code provided by the lecturers, w/ small tweaks)*/
-void FileHandler::hexifyToFile(std::fstream& thisFile, const char* buffer, unsigned int length)
+void utils::hexifyToFile(std::fstream& thisFile, const char* buffer, unsigned int length)
 {
 	std::ios::fmtflags f(thisFile.flags());
 	thisFile << std::hex;
@@ -101,14 +101,14 @@ void FileHandler::hexifyToFile(std::fstream& thisFile, const char* buffer, unsig
 }
 
 /* Returns true if fileDestination exists on the server, otherwise returns false. */
-bool FileHandler::isExistent(const std::string& fileDestination)
+bool utils::isExistent(const std::string& fileDestination)
 {
 	std::filesystem::path pathToCheck = fileDestination;
 	return std::filesystem::exists(fileDestination);
 }
 
 /* Returns the size of file received. This function assumes that 4 bytes are enough to store the size. */
-uint32_t FileHandler::getFileSize(const std::string& fileDestination)
+uint32_t utils::getFileSize(const std::string& fileDestination)
 {
 	std::filesystem::path pathToCheck = fileDestination;
 	return std::filesystem::file_size(pathToCheck);

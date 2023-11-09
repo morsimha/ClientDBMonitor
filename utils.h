@@ -1,5 +1,5 @@
 /*
-FileHandler.h
+utils.h
 */
 
 #pragma once
@@ -9,7 +9,7 @@ FileHandler.h
 #include <string>
 
 
-class FileHandler {
+class utils {
 public:
 	bool openFile(const std::string&, std::fstream&, bool);
 	bool openFileBin(const std::string&, std::fstream&, bool);
