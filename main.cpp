@@ -37,23 +37,36 @@ int main() {
 	sa.sin_port = htons(port);	
 	inet_pton(AF_INET, ip_addr.c_str(), &sa.sin_addr); 
 
-	bool is_new_user = true;
-	bool status;
+	bool newUser;
+	bool status = true;
 
-	//client.registerUser(sock, &sa, uuid);
-	try {
-		status = client.registerUser(fileUtils, sock, &sa, uuid);
+
+	//std::remove(ME_INFO);
+
+	// We check if any of the .info file exist, in order to initiate login or register.
+	// if none exist, this is a failure
+
+	try{
+		newUser = client.getClientInfo(fileUtils, username);
 	}
 	catch (std::exception& e) {
-		// maybe remove
-		std::cerr << "Exception caught: " << e.what() << std::endl;
-		is_new_user = false;
-		status = client.loginUser(sock, &sa, username, uuid, AESEncrypted);
+		std::cerr << e.what() << std::endl;
+		status =  false;
+	}
+
+	if (status) {
+		if (newUser) {
+			//TODO do I want to send empty pointer (last 3)?
+			status = client.registerUser(fileUtils, sock, &sa, username, uuid);
+		}
+		else {
+			status = client.loginUser(sock, &sa, username, uuid, AESEncrypted);
+		}
 	}
 
 	if (status) {
 		sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		status = client.sendFile(fileUtils, sock, &sa, uuid, AESEncrypted, is_new_user);
+		status = client.sendFile(fileUtils, sock, &sa, username, uuid, AESEncrypted, newUser);
 	}
 		WSACleanup();
 

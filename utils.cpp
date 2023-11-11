@@ -1,6 +1,6 @@
 #include "utils.h"
 
-/* Opens the file as binary, and returns true upon success. If the directories don't exist, they will be created. */
+/* Opens the file, and returns true upon success. If the directories don't exist, they will be created. */
 bool utils::openFile(const std::string& fileDestination, std::fstream& thisFile, bool writeFlag)
 {	
 	std::filesystem::path pathToCheck = fileDestination;
@@ -101,7 +101,7 @@ void utils::hexifyToFile(std::fstream& thisFile, const char* buffer, unsigned in
 }
 
 /* Returns true if fileDestination exists on the server, otherwise returns false. */
-bool utils::isExistent(const std::string& fileDestination)
+bool utils::isFile(const std::string& fileDestination)
 {
 	std::filesystem::path pathToCheck = fileDestination;
 	return std::filesystem::exists(fileDestination);
