@@ -1,6 +1,182 @@
 #include "Client.h"
 // TODO Consider class or any way that doesnt require utils init every time.
 
+/* Places the server info into the received variables. Returns true upon success and false upon failure. */
+
+bool Client::getClientInfo(utils fileUtils, char* username) const {
+	std::fstream file;
+	std::string name;
+
+
+	// Check if 'me.info' exists and open it
+	if (fileUtils.isFile(ME_INFO)) {
+		std::cout << "me.info file found, accessing login information.." << std::endl;
+		if (!fileUtils.openFile(ME_INFO, file, false))
+			throw std::runtime_error("Error: cannot open Me.info file.");
+
+		std::getline(file, name);
+		memcpy(username, name.c_str(), USER_LENGTH);
+		fileUtils.closeFile(file);
+		// not a new user - returing false
+
+		return false;
+	}
+	else if (fileUtils.isFile(TRANSFER_INFO)) {
+		std::cout << "only transfer.info file found, accessing register information.." << std::endl;
+		if (!fileUtils.openFile(TRANSFER_INFO, file, false))
+			throw std::runtime_error("Error: cannot open Me.info file.");
+		std::getline(file, name);
+		std::getline(file, name);
+		memcpy(username, name.c_str(), USER_LENGTH);
+		fileUtils.closeFile(file);
+		// new user - returing true
+		return true;
+	}
+
+	//std::cerr << "Error: Transfer.info and Me.info files do not exist. " << std::endl;
+	throw std::runtime_error("Error: Transfer.info and Me.info files do not exist.");
+
+}
+
+bool Client::getServerInfo(utils fileUtils, std::string& ip_address, uint16_t& port) const
+{
+	std::fstream newFile;
+	std::string fullLine;
+	if (!fileUtils.isFile(TRANSFER_INFO)) {
+		std::cerr << "Error: Transfer file doesn't exist. " << std::endl;
+		return false;
+	}
+	if (!fileUtils.openFile(TRANSFER_INFO, newFile, false))
+		return false;
+	
+	if (!std::getline(newFile, fullLine)) {
+		std::cerr << "Error reading from transfer file. " << std::endl;
+		return false;
+	}
+	fileUtils.closeFile(newFile);
+
+	size_t pos = fullLine.find(":");
+	ip_address = fullLine.substr(0, pos);
+	fullLine.erase(0, pos + 1);
+
+	int tmp = std::stoi(fullLine);
+	if (tmp <= static_cast<int>(UINT16_MAX) && tmp >= 0)
+		port = static_cast<uint16_t>(tmp);
+	else {
+		std::cerr << "Error: Port is invalid." << std::endl;
+		return false;
+	}
+	return true;
+}
+
+bool Client::loginUser(const SOCKET& sock, struct sockaddr_in* sa, char* username, char* uuid, char* AESKey) const {
+
+	try {
+		int connRes = connect(sock, (struct sockaddr*)sa, sizeof(*sa));
+	}
+	catch (std::exception& e) {
+		std::cerr << "Exception: " << e.what() << std::endl;
+		return false;
+	}
+
+	Request req;
+	char requestBuffer[PACKET_SIZE] = { 0 };
+
+	// Set the request header fields for a login request
+	req._request.URequestHeader.SRequestHeader.payload_size = strlen(username) + 1;  // +1 for the null terminator
+	req._request.payload = new char[strlen(username) + 1];  // +1 for the null terminator
+	memcpy(req._request.payload, username, strlen(username) + 1);  // +1 to include the null terminator
+	req._request.URequestHeader.SRequestHeader.code = LOGIN_REQUEST;
+
+	// Pack the request and send it
+	req.packRequest(requestBuffer);
+	send(sock, requestBuffer, PACKET_SIZE, 0);
+
+	// Receive the server response
+	char buffer[PACKET_SIZE] = { 0 };
+	recv(sock, buffer, PACKET_SIZE, 0);
+
+	Response res;
+	res.unpackResponse(buffer);
+
+	// Check for a successful login response code
+	if (res._response.UResponseHeader.SResponseHeader.code == LOGIN_SUCCESS) {
+		std::cout << "Successfully logged in - " << username << std::endl;
+		// Copy the encrypted AES key and the UUID from the response payload
+		memcpy(uuid, res._response.payload, CLIENT_ID_SIZE);
+		memcpy(AESKey, res._response.payload + CLIENT_ID_SIZE, ENC_AES_LEN);
+		return true;
+	}
+
+	else if (res._response.UResponseHeader.SResponseHeader.code == LOGIN_ERROR) {
+		std::cerr << "Error: Failed to login, this user needs to be registered!" << std::endl;
+		std::cerr << "Trying to login instead.." << std::endl;
+		closesocket(sock);
+	}
+
+	else if (res._response.UResponseHeader.SResponseHeader.code == GENERAL_ERROR) {
+		std::cout << "Error: Server failed to login the user for unkown reason. " << std::endl;
+	}
+	return false;
+
+}
+
+/* Deals with user registration to the server. */
+bool Client::registerUser(utils fileUtils, const SOCKET& sock, struct sockaddr_in* sa, std::string username, char* uuid) const
+{
+	std::fstream newFile;
+	//std::string uuid_from_ME;
+	Request req;
+	char requestBuffer[PACKET_SIZE] = { 0 };
+
+	if (username.length() >= USER_LENGTH) {
+		std::cout << "Username doesn't meet the length criteria. " << std::endl;
+		return false;
+	}
+
+	try {
+		int connRes = connect(sock, (struct sockaddr*)sa, sizeof(*sa)); /* Connection to the server */
+	}
+	catch (std::exception& e) {
+		std::cerr << "Exception: " << e.what() << std::endl;
+		return false;
+	}
+
+	req._request.URequestHeader.SRequestHeader.payload_size = username.length() + 1;
+	req._request.payload = new char[req._request.URequestHeader.SRequestHeader.payload_size];
+	memcpy(req._request.payload, username.c_str(), username.length() + 1);
+	req._request.URequestHeader.SRequestHeader.code = REGISTER_REQUEST;
+
+	req.packRequest(requestBuffer);
+	std::cout << "Sending register request for " << username << "." << std::endl;
+	send(sock, requestBuffer, PACKET_SIZE, 0);
+	
+	char buffer[PACKET_SIZE] = { 0 };
+	recv(sock, buffer, PACKET_SIZE, 0);
+
+	Response res;
+	res.unpackResponse(buffer);
+
+	// Creating me.info file for a new user.
+	if (res._response.UResponseHeader.SResponseHeader.code == REGISTER_SUCCESS) {
+
+		bool retFlag;
+		bool retVal = addUserToMeFile(fileUtils, newFile, username, res, uuid, retFlag);
+		if (retFlag) return retVal;
+
+		closesocket(sock);
+		return true;
+
+	}
+	else if(res._response.UResponseHeader.SResponseHeader.code == REGISTER_ERROR) {
+		std::cout << "Error: Failed to register user, the user is already registered, try to login instead. " << std::endl;
+	}
+	else if (res._response.UResponseHeader.SResponseHeader.code == GENERAL_ERROR) {
+		std::cout << "Error: Failed to register user due to a general error. " << std::endl;
+	}
+	return false;
+}
+
 /* Sends the RSA Public Key and inserts the received AES key into AESKey. */
 bool Client::sendPubKey(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, unsigned char* AESKey, std::string username, char* uuid) const
 {
@@ -18,30 +194,11 @@ bool Client::sendPubKey(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, un
 		return false;
 	}
 
-	//std::string username;
-	//if (fileUtils.isFile(ME_INFO)) {
-	//	if (!fileUtils.openFile(ME_INFO, newFile, false))
-	//		return false;
-	//	std::getline(newFile, username);
-	//	fileUtils.closeFile(newFile);
-	//}
-	//else if (fileUtils.isFile(TRANSFER_INFO)) {
-	//	if (!fileUtils.openFile(TRANSFER_INFO, newFile, false))
-	//		return false;
-	//	std::getline(newFile, username);
-	//	std::getline(newFile, username); // Second line.
-	//	fileUtils.closeFile(newFile);
-	//}
-	//else {
-	//	std::cerr << "Error: Transfer and info files do not exist. " << std::endl;
-	//	return false;
-	//}
-
 	std::string privkey = rsapriv.getPrivateKey();
 	std::string encoded_privkey = Base64Wrapper::encode(privkey);
 
 	bool retFlag;
-	bool retVal = updateMeFile(fileUtils, newFile, encoded_privkey, retFlag);
+	bool retVal = addPrivkeyToMeFile(fileUtils, newFile, encoded_privkey, retFlag);
 	if (retFlag) return retVal;
 
 	// Open or create the file "priv.key" for writing
@@ -94,7 +251,24 @@ bool Client::sendPubKey(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, un
 	return false;
 }
 
-bool Client::updateMeFile(utils& fileUtils, std::fstream& newFile, std::string& encoded_privkey, bool& retFlag) const
+bool Client::addUserToMeFile(utils& fileUtils, std::fstream& newFile, std::string& username, Response& res, char* uuid, bool& retFlag) const
+{
+	retFlag = true;
+	if (!fileUtils.openFileOverwrites(ME_INFO, newFile))
+		return false;
+
+	fileUtils.writeToFile(newFile, username.c_str(), username.length());
+	fileUtils.writeToFile(newFile, "\n", strlen("\n"));
+	fileUtils.hexifyToFile(newFile, res._response.payload, res._response.UResponseHeader.SResponseHeader.payload_size);
+	fileUtils.closeFile(newFile);
+
+	std::cout << "Updated ME INFO file with name and UUID." << std::endl;
+	memcpy(uuid, res._response.payload, CLIENT_ID_SIZE);
+	retFlag = false;
+	return {};
+}
+
+bool Client::addPrivkeyToMeFile(utils& fileUtils, std::fstream& newFile, std::string& encoded_privkey, bool& retFlag) const
 {
 	retFlag = true;
 	if (!fileUtils.openFile(ME_INFO, newFile, true))
@@ -105,103 +279,6 @@ bool Client::updateMeFile(utils& fileUtils, std::fstream& newFile, std::string& 
 	fileUtils.closeFile(newFile);
 	retFlag = false;
 	return {};
-}
-
-/* Places the server info into the received variables. Returns true upon success and false upon failure. */
-bool Client::getServerInfo(utils fileUtils, std::string& ip_address, uint16_t& port) const
-{
-	std::fstream newFile;
-	std::string fullLine;
-	if (!fileUtils.isFile(TRANSFER_INFO)) {
-		std::cerr << "Error: Transfer file doesn't exist. " << std::endl;
-		return false;
-	}
-	if (!fileUtils.openFile(TRANSFER_INFO, newFile, false))
-		return false;
-	
-	if (!std::getline(newFile, fullLine)) {
-		std::cerr << "Error reading from transfer file. " << std::endl;
-		return false;
-	}
-	fileUtils.closeFile(newFile);
-
-	size_t pos = fullLine.find(":");
-	ip_address = fullLine.substr(0, pos);
-	fullLine.erase(0, pos + 1);
-
-	int tmp = std::stoi(fullLine);
-	if (tmp <= static_cast<int>(UINT16_MAX) && tmp >= 0)
-		port = static_cast<uint16_t>(tmp);
-	else {
-		std::cerr << "Error: Port is invalid." << std::endl;
-		return false;
-	}
-	return true;
-}
-
-/* Deals with user registration to the server. */
-bool Client::registerUser(utils fileUtils, const SOCKET& sock, struct sockaddr_in* sa, std::string username, char* uuid) const
-{
-	std::fstream newFile;
-	//std::string uuid_from_ME;
-	Request req;
-	char requestBuffer[PACKET_SIZE] = { 0 };
-
-	bool secondLineExists = false; // Flag for checking UUID existence in ME_INFO
-
-	if (username.length() >= USER_LENGTH) {
-		std::cout << "Username doesn't meet the length criteria. " << std::endl;
-		return false;
-	}
-
-	try {
-		int connRes = connect(sock, (struct sockaddr*)sa, sizeof(*sa)); /* Connection to the server */
-	}
-	catch (std::exception& e) {
-		std::cerr << "Exception: " << e.what() << std::endl;
-		return false;
-	}
-
-	req._request.URequestHeader.SRequestHeader.payload_size = username.length() + 1;
-	req._request.payload = new char[req._request.URequestHeader.SRequestHeader.payload_size];
-	memcpy(req._request.payload, username.c_str(), username.length() + 1);
-	req._request.URequestHeader.SRequestHeader.code = REGISTER_REQUEST;
-
-	req.packRequest(requestBuffer);
-	std::cout << "Sending register request for " << username << "." << std::endl;
-	send(sock, requestBuffer, PACKET_SIZE, 0);
-	
-	char buffer[PACKET_SIZE] = { 0 };
-	recv(sock, buffer, PACKET_SIZE, 0);
-
-	Response res;
-	res.unpackResponse(buffer);
-
-	// Creating me.info file for a new user.
-	if (res._response.UResponseHeader.SResponseHeader.code == REGISTER_SUCCESS) {
-
-		if (!fileUtils.openFileOverwrites(ME_INFO, newFile))
-			return false;
-
-		fileUtils.writeToFile(newFile, username.c_str(), username.length());
-		fileUtils.writeToFile(newFile, "\n", strlen("\n"));
-		fileUtils.hexifyToFile(newFile, res._response.payload, res._response.UResponseHeader.SResponseHeader.payload_size);
-		fileUtils.closeFile(newFile);
-
-		std::cout << "Updated ME INFO file with name and UUID." << std::endl;
-		memcpy(uuid, res._response.payload, CLIENT_ID_SIZE);
-
-		closesocket(sock);
-		return true;
-
-	}
-	else if(res._response.UResponseHeader.SResponseHeader.code == REGISTER_ERROR) {
-		std::cout << "Error: Failed to register user, the user is already registered, try to login instead. " << std::endl;
-	}
-	else if (res._response.UResponseHeader.SResponseHeader.code == GENERAL_ERROR) {
-		std::cout << "Error: Failed to register user due to a general error. " << std::endl;
-	}
-	return false;
 }
 
 bool Client::decryptAESKey(utils fileUtils, const char* uuid, const char* encryptedAESKey, unsigned char* AESKey) const
@@ -418,116 +495,5 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 	return true;
 }
 
-bool Client::getClientInfo(utils fileUtils, char* username) const {
-	std::fstream file;
-	std::string name;
-
-
-	// Check if 'me.info' exists and open it
-	if (fileUtils.isFile(ME_INFO)) {
-		std::cout << "me.info file found, accessing login information.." << std::endl;
-		if (!fileUtils.openFile(ME_INFO, file, false))
-			throw std::runtime_error("Error: cannot open Me.info file.");
-
-		std::getline(file, name);
-		memcpy(username, name.c_str(), USER_LENGTH);
-		fileUtils.closeFile(file);
-		// not a new user - returing false
-
-		return false;
-	}
-	else if (fileUtils.isFile(TRANSFER_INFO)) {
-		std::cout << "only transfer.info file found, accessing register information.." << std::endl;
-		if (!fileUtils.openFile(TRANSFER_INFO, file, false))
-			throw std::runtime_error("Error: cannot open Me.info file.");
-		std::getline(file, name);
-		std::getline(file, name);
-		memcpy(username, name.c_str(), USER_LENGTH);
-		fileUtils.closeFile(file);
-		// new user - returing true
-		return true;
-	}
-
-	//std::cerr << "Error: Transfer.info and Me.info files do not exist. " << std::endl;
-	throw std::runtime_error("Error: Transfer.info and Me.info files do not exist.");
-
-}
-
-bool Client::loginUser(const SOCKET& sock, struct sockaddr_in* sa, char* username, char* uuid, char* AESKey) const {
-
-	try {
-		int connRes = connect(sock, (struct sockaddr*)sa, sizeof(*sa));
-	}
-	catch (std::exception& e) {
-		std::cerr << "Exception: " << e.what() << std::endl;
-		return false;
-	}
-
-	Request req;
-	char requestBuffer[PACKET_SIZE] = { 0 };
-
-	// Set the request header fields for a login request
-	req._request.URequestHeader.SRequestHeader.payload_size = strlen(username)+1;  // +1 for the null terminator
-	req._request.payload = new char[strlen(username)+1];  // +1 for the null terminator
-	memcpy(req._request.payload, username, strlen(username)+1);  // +1 to include the null terminator
-	req._request.URequestHeader.SRequestHeader.code = LOGIN_REQUEST;
-
-	// Pack the request and send it
-	req.packRequest(requestBuffer);
-	send(sock, requestBuffer, PACKET_SIZE, 0);
-
-	// Receive the server response
-	char buffer[PACKET_SIZE] = { 0 };
-	recv(sock, buffer, PACKET_SIZE, 0);
-
-	Response res;
-	res.unpackResponse(buffer);
-
-	// Check for a successful login response code
- 	if (res._response.UResponseHeader.SResponseHeader.code == LOGIN_SUCCESS) {
-		std::cout << "Successfully logged in - " << username << std::endl;
-		// Copy the encrypted AES key and the UUID from the response payload
-		memcpy(uuid, res._response.payload, CLIENT_ID_SIZE);
-		memcpy(AESKey, res._response.payload + CLIENT_ID_SIZE, ENC_AES_LEN);
-		return true;
-	}
-
-	else if (res._response.UResponseHeader.SResponseHeader.code == LOGIN_ERROR) {
-		std::cerr << "Error: Failed to login, this user needs to be registered!" << std::endl;
-		std::cerr << "Trying to login instead.." << std::endl;
-		closesocket(sock);
-
-		//// Create a new socket
-		//SOCKET new_sock = socket(AF_INET, SOCK_STREAM, 0);
-		//if (new_sock == INVALID_SOCKET) {
-		//	std::cerr << "Error: Unable to create socket." << std::endl;
-		//	return false;
-		//}
-
-		//// Re-establish the connection
-		//int connRes = connect(new_sock, (struct sockaddr*)sa, sizeof(*sa));
-		//if (connRes == SOCKET_ERROR) {
-		//	std::cerr << "Error: Unable to connect to server." << std::endl;
-		//	closesocket(new_sock);  // Don't forget to close the new socket
-		//	return false;
-		//}
-
-		//if (registerUser(new_sock, sa, uuid)) {
-		//	std::cout << "The following User registered successfully - "<< uuid << std::endl;
-		//	return true;  // Return true as the user is now registered as a new user
-		//}
-		//else {
-	//		std::cout << "Error: Failed to register user." << std::endl;
-			return false;
-		//}
-		//throw std::runtime_error("trying to login instead...");
-	}
-
-	else if (res._response.UResponseHeader.SResponseHeader.code == GENERAL_ERROR) {
-		std::cout << "Error: Server failed to login the user for unkown reason. " << std::endl;
-	}
-	return false;
-	
-}
 
 

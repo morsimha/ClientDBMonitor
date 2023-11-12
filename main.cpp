@@ -41,7 +41,7 @@ int main() {
 	bool login_status = true, status = true;
 
 
-	std::remove(ME_INFO);
+	//std::remove(ME_INFO);
 
 	// failure in an of the functions inside the try/catch will lead to error printing and cleaning andterminating the run.
 	try{
