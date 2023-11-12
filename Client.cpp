@@ -493,7 +493,8 @@ bool Client::loginUser(const SOCKET& sock, struct sockaddr_in* sa, char* usernam
 	}
 
 	else if (res._response.UResponseHeader.SResponseHeader.code == LOGIN_ERROR) {
-		std::cout << "Error: Failed to login, this user needs to be registered!" << std::endl;
+		std::cerr << "Error: Failed to login, this user needs to be registered!" << std::endl;
+		std::cerr << "Trying to login instead.." << std::endl;
 		closesocket(sock);
 
 		//// Create a new socket
@@ -516,10 +517,10 @@ bool Client::loginUser(const SOCKET& sock, struct sockaddr_in* sa, char* usernam
 		//	return true;  // Return true as the user is now registered as a new user
 		//}
 		//else {
-		//	std::cout << "Error: Failed to register user." << std::endl;
-		//	return false;
+	//		std::cout << "Error: Failed to register user." << std::endl;
+			return false;
 		//}
-		throw std::runtime_error("trying to login instead...");
+		//throw std::runtime_error("trying to login instead...");
 	}
 
 	else if (res._response.UResponseHeader.SResponseHeader.code == GENERAL_ERROR) {

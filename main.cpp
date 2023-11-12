@@ -30,7 +30,7 @@ int main() {
 	char AESEncrypted[ENC_AES_LEN] = { 0 };
 	WSADATA wsaData;
 	int ret = WSAStartup(MAKEWORD(2, 2), &wsaData); 	
-	SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	SOCKET sock;
 
 	struct sockaddr_in sa = { 0 };
 	sa.sin_family = AF_INET;
@@ -38,44 +38,38 @@ int main() {
 	inet_pton(AF_INET, ip_addr.c_str(), &sa.sin_addr); 
 
 	bool newUser;
-	bool status = true;
+	bool login_status = true, status = true;
 
 
-	//std::remove(ME_INFO);
+	std::remove(ME_INFO);
 
-	// We check if any of the .info file exist, in order to initiate login or register.
-	// if none exist, this is a failure
-
+	// failure in an of the functions inside the try/catch will lead to error printing and cleaning andterminating the run.
 	try{
+		// We check if any of the .info file exist, in order to initiate login or register.
 		newUser = client.getClientInfo(fileUtils, username);
+
+		if (!newUser) {
+			//TODO do I want to send empty pointer (last 3)?
+			sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+			login_status = client.loginUser(sock, &sa, username, uuid, AESEncrypted);
+		}
+		// trying to register if login failed or this is a new user.
+		if (!login_status or newUser) {
+			sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+			status = client.registerUser(fileUtils, sock, &sa, username, uuid);
+			newUser = true;
+		}
 	}
+
 	catch (std::exception& e) {
 		std::cerr << e.what() << std::endl;
 		status =  false;
 	}
 
-	if (status) {
-		if (!newUser) {
-			//TODO do I want to send empty pointer (last 3)?
-			try {
-				status = client.loginUser(sock, &sa, username, uuid, AESEncrypted);
-			}
-			catch (std::exception& e) {
-				std::cerr << e.what() << std::endl;
-				sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-				newUser = true;
-			}
-		}
-
-		if (newUser) {
-			status = client.registerUser(fileUtils, sock, &sa, username, uuid);
-		}
-	}
-
 
 	if (status) {
 		sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		status = client.sendFile(fileUtils, sock, &sa, username, uuid, AESEncrypted, newUser);
+		login_status = client.sendFile(fileUtils, sock, &sa, username, uuid, AESEncrypted, newUser);
 	}
 		WSACleanup();
 
