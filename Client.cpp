@@ -180,7 +180,7 @@ bool Client::registerUser(utils fileUtils, const SOCKET& sock, struct sockaddr_i
 	// Creating me.info file for a new user.
 	if (res._response.UResponseHeader.SResponseHeader.code == REGISTER_SUCCESS) {
 
-		if (!fileUtils.openFile(ME_INFO, newFile, true))
+		if (!fileUtils.openFileOverwrites(ME_INFO, newFile))
 			return false;
 
 		fileUtils.writeToFile(newFile, username.c_str(), username.length());
@@ -519,7 +519,7 @@ bool Client::loginUser(const SOCKET& sock, struct sockaddr_in* sa, char* usernam
 		//	std::cout << "Error: Failed to register user." << std::endl;
 		//	return false;
 		//}
-		return false;
+		throw std::runtime_error("trying to login instead...");
 	}
 
 	else if (res._response.UResponseHeader.SResponseHeader.code == GENERAL_ERROR) {

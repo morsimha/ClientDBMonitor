@@ -55,14 +55,23 @@ int main() {
 	}
 
 	if (status) {
-		if (newUser) {
+		if (!newUser) {
 			//TODO do I want to send empty pointer (last 3)?
+			try {
+				status = client.loginUser(sock, &sa, username, uuid, AESEncrypted);
+			}
+			catch (std::exception& e) {
+				std::cerr << e.what() << std::endl;
+				sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+				newUser = true;
+			}
+		}
+
+		if (newUser) {
 			status = client.registerUser(fileUtils, sock, &sa, username, uuid);
 		}
-		else {
-			status = client.loginUser(sock, &sa, username, uuid, AESEncrypted);
-		}
 	}
+
 
 	if (status) {
 		sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
