@@ -53,6 +53,4 @@ public:
 	bool registerUser(utils fileUtils, const SOCKET&, struct sockaddr_in*, std::string username, char*) const;
 	bool sendFile(utils fileUtils, const SOCKET&, struct sockaddr_in*, char*, char*, char*, bool) const;
 	bool loginUser(const SOCKET & sock, struct sockaddr_in* sa, char*, char*, char*) const;  
-	bool writeToFile(utils fileUtils, std::fstream& file, const std::string& content) const;
-
 };

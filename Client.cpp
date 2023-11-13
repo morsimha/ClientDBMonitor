@@ -257,8 +257,8 @@ bool Client::addUserToMeFile(utils fileUtils, std::string& username, Response& r
 		std::cerr << "Failed to open ME_INFO file." << std::endl;
 		return false;
 	}
-
-	if (!writeToFile(fileUtils, newFile, username + "\n")) return false;
+	std::string content = username + "\n";
+	if (!fileUtils.writeToFile(newFile, content.c_str(), content.length())) return false;
 	if (!fileUtils.hexifyToFile(newFile, res._response.payload, res._response.UResponseHeader.SResponseHeader.payload_size)) return false;
 	fileUtils.closeFile(newFile);
 
@@ -275,19 +275,11 @@ bool Client::addPrivkeyToMeFile(utils fileUtils, std::string& encoded_privkey) c
 		return false;
 	}
 
-	if (!writeToFile(fileUtils, newFile, "\n" + encoded_privkey)) return false;
+	std::string content = "\n" + encoded_privkey;
+	if (!fileUtils.writeToFile(newFile, content.c_str(), content.length())) return false;
 	fileUtils.closeFile(newFile);
 	return true;
 
-
-}
-
-bool Client::writeToFile(utils fileUtils, std::fstream& file, const std::string& content) const {
-	if (!fileUtils.writeToFile(file, content.c_str(), content.length())) {
-		std::cerr << "Error writing to file." << std::endl;
-		return false;
-	}
-	return true;
 }
 
 bool Client::decryptAESKey(utils fileUtils, const char* uuid, const char* encryptedAESKey, unsigned char* AESKey) const

@@ -1,17 +1,16 @@
 #include "utils.h"
 
-/* Opens the file, and returns true upon success. If the directories don't exist, they will be created. */
+// Opens the file, and returns true upon success. If the directories don't exist, they will be created.
 bool utils::openFile(const std::string& fileDestination, std::fstream& thisFile, bool writeFlag)
-{	
-	std::filesystem::path pathToCheck = fileDestination;
+{
 	try {
-		std::filesystem::create_directories(pathToCheck.parent_path());
-		auto flag = writeFlag ?  (std::fstream::out | std::fstream::app) : std::fstream::in;
-		thisFile.open(fileDestination.c_str(), flag);
+		std::filesystem::create_directories(std::filesystem::path(fileDestination).parent_path());
+		auto flag = writeFlag ? (std::fstream::out | std::fstream::app) : std::fstream::in;
+		thisFile.open(fileDestination, flag);
 		return thisFile.is_open();
 	}
 	catch (std::exception& e) {
-		std::cerr << "Exception: " << e.what() << std::endl;
+		std::cerr << "Open file exception for " << fileDestination << ": " << e.what() << std::endl;
 		return false;
 	}
 }
@@ -65,12 +64,17 @@ bool utils::closeFile(std::fstream& thisFile)
 /* Writes content into a file. fstream object is received, so the calling function is responsible for opening. */
 bool utils::writeToFile(std::fstream& thisFile, const char* content, uint32_t size)
 {
+	if (!thisFile.is_open() || content == nullptr || size == 0) {
+		std::cerr << "Invalid input for writeToFile." << std::endl;
+		return false;
+	}
+
 	try {
 		thisFile.write(content, size);
 		return true;
 	}
 	catch (std::exception& e) {
-		std::cerr << "Exception: " << e.what() << std::endl;
+		std::cerr << "Write to file exception: " << e.what() << std::endl;
 		return false;
 	}
 }
