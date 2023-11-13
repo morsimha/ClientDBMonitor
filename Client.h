@@ -52,5 +52,6 @@ public:
 	bool getServerInfo(utils fileUtils, std::string&, uint16_t&) const;
 	bool registerUser(utils fileUtils, const SOCKET&, struct sockaddr_in*, std::string username, char*) const;
 	bool sendFile(utils fileUtils, const SOCKET&, struct sockaddr_in*, char*, char*, char*, bool) const;
+	bool handleSocketOperation(const SOCKET& sock, sockaddr_in* sa, const char* requestData, size_t requestDataSize, char* responseData, size_t responseBufferSize) const;
 	bool loginUser(const SOCKET & sock, struct sockaddr_in* sa, char*, char*, char*) const;  
 };

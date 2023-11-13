@@ -71,33 +71,26 @@ bool Client::getServerInfo(utils fileUtils, std::string& ip_address, uint16_t& p
 
 bool Client::loginUser(const SOCKET& sock, struct sockaddr_in* sa, char* username, char* uuid, char* AESKey) const {
 
-	try {
-		int connRes = connect(sock, (struct sockaddr*)sa, sizeof(*sa));
-	}
-	catch (std::exception& e) {
-		std::cerr << "Exception: " << e.what() << std::endl;
-		return false;
-	}
-
 	Request req;
+	Response res;
+
 	char requestBuffer[PACKET_SIZE] = { 0 };
+	char responseBuffer[PACKET_SIZE] = {0};
 
 	// Set the request header fields for a login request
 	req._request.URequestHeader.SRequestHeader.payload_size = strlen(username) + 1;  // +1 for the null terminator
 	req._request.payload = new char[strlen(username) + 1];  // +1 for the null terminator
 	memcpy(req._request.payload, username, strlen(username) + 1);  // +1 to include the null terminator
 	req._request.URequestHeader.SRequestHeader.code = LOGIN_REQUEST;
-
-	// Pack the request and send it
 	req.packRequest(requestBuffer);
-	send(sock, requestBuffer, PACKET_SIZE, 0);
 
-	// Receive the server response
-	char buffer[PACKET_SIZE] = { 0 };
-	recv(sock, buffer, PACKET_SIZE, 0);
+	std::cout << "Sending login request for " << username << "." << std::endl;
 
-	Response res;
-	res.unpackResponse(buffer);
+	if (!handleSocketOperation(sock, sa, requestBuffer, PACKET_SIZE, responseBuffer, PACKET_SIZE)) {
+		return false;
+	}
+
+	res.unpackResponse(responseBuffer);
 
 	// Check for a successful login response code
 	if (res._response.UResponseHeader.SResponseHeader.code == LOGIN_SUCCESS) {
@@ -127,18 +120,13 @@ bool Client::registerUser(utils fileUtils, const SOCKET& sock, struct sockaddr_i
 	std::fstream newFile;
 	//std::string uuid_from_ME;
 	Request req;
+	Response res;
+
 	char requestBuffer[PACKET_SIZE] = { 0 };
+	char responseBuffer[PACKET_SIZE] = { 0 };
 
 	if (username.length() >= USER_LENGTH) {
 		std::cout << "Username doesn't meet the length criteria. " << std::endl;
-		return false;
-	}
-
-	try {
-		int connRes = connect(sock, (struct sockaddr*)sa, sizeof(*sa)); /* Connection to the server */
-	}
-	catch (std::exception& e) {
-		std::cerr << "Exception: " << e.what() << std::endl;
 		return false;
 	}
 
@@ -146,16 +134,16 @@ bool Client::registerUser(utils fileUtils, const SOCKET& sock, struct sockaddr_i
 	req._request.payload = new char[req._request.URequestHeader.SRequestHeader.payload_size];
 	memcpy(req._request.payload, username.c_str(), username.length() + 1);
 	req._request.URequestHeader.SRequestHeader.code = REGISTER_REQUEST;
-
 	req.packRequest(requestBuffer);
-	std::cout << "Sending register request for " << username << "." << std::endl;
-	send(sock, requestBuffer, PACKET_SIZE, 0);
-	
-	char buffer[PACKET_SIZE] = { 0 };
-	recv(sock, buffer, PACKET_SIZE, 0);
 
-	Response res;
-	res.unpackResponse(buffer);
+	std::cout << "Sending register request for " << username << "." << std::endl;
+	if (!handleSocketOperation(sock, sa, requestBuffer, PACKET_SIZE, responseBuffer, PACKET_SIZE)) {
+		return false;
+	}
+	
+	recv(sock, responseBuffer, PACKET_SIZE, 0);
+
+	res.unpackResponse(responseBuffer);
 
 	// Creating me.info file for a new user.
 	if (res._response.UResponseHeader.SResponseHeader.code == REGISTER_SUCCESS) {
@@ -493,6 +481,27 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 	}
 
 	closesocket(sock);
+	return true;
+}
+
+bool Client::handleSocketOperation(const SOCKET& sock, struct sockaddr_in* sa, const char* requestData, size_t requestDataSize, char* responseData, size_t responseBufferSize) const {
+	if (connect(sock, (struct sockaddr*)sa, sizeof(*sa)) != 0) {
+		std::cerr << "Connection failed." << std::endl;
+		return false;
+	}
+
+	// Send request data
+	if (send(sock, requestData, requestDataSize, 0) == SOCKET_ERROR) {
+		std::cerr << "Failed to send data." << std::endl;
+		return false;
+	}
+
+	// Receive response data
+	if (recv(sock, responseData, responseBufferSize, 0) == SOCKET_ERROR) {
+		std::cerr << "Failed to receive data." << std::endl;
+		return false;
+	}
+
 	return true;
 }
 
