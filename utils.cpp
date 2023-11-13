@@ -14,7 +14,6 @@ bool utils::openFile(const std::string& fileDestination, std::fstream& thisFile,
 		std::cerr << "Exception: " << e.what() << std::endl;
 		return false;
 	}
-	return false;
 }
 
 /* Opens the file as binary, and returns true upon success. If the directories don't exist, they will be created. */
@@ -91,13 +90,21 @@ bool utils::readFileIntoPayload(std::fstream& thisFile, char* payload, uint32_t 
 }
 
 /* Given a buffer, writes the buffer in hex into a file. (Inspired by the code provided by the lecturers, w/ small tweaks)*/
-void utils::hexifyToFile(std::fstream& thisFile, const char* buffer, unsigned int length)
+bool utils::hexifyToFile(std::fstream& thisFile, const char* buffer, unsigned int length)
 {
 	std::ios::fmtflags f(thisFile.flags());
 	thisFile << std::hex;
-	for (size_t i = 0; i < length; i++)
-		thisFile << std::setfill('0') << std::setw(2) << (0xFF & buffer[i]);
-	thisFile.flags(f);
+	try {
+		for (size_t i = 0; i < length; i++)
+			thisFile << std::setfill('0') << std::setw(2) << (0xFF & buffer[i]);
+		thisFile.flags(f);
+		return true;
+	}
+	catch (std::exception& e) {
+		std::cerr << "Failed to hex: " << e.what() << std::endl;
+		return false;
+	}
+
 }
 
 /* Returns true if fileDestination exists on the server, otherwise returns false. */

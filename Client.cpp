@@ -160,9 +160,9 @@ bool Client::registerUser(utils fileUtils, const SOCKET& sock, struct sockaddr_i
 	// Creating me.info file for a new user.
 	if (res._response.UResponseHeader.SResponseHeader.code == REGISTER_SUCCESS) {
 
-		bool retFlag;
-		bool retVal = addUserToMeFile(fileUtils, newFile, username, res, uuid, retFlag);
-		if (retFlag) return retVal;
+		if (!addUserToMeFile(fileUtils, username, res, uuid)) {
+			return false;
+		}
 
 		closesocket(sock);
 		return true;
@@ -197,9 +197,9 @@ bool Client::sendPubKey(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, un
 	std::string privkey = rsapriv.getPrivateKey();
 	std::string encoded_privkey = Base64Wrapper::encode(privkey);
 
-	bool retFlag;
-	bool retVal = addPrivkeyToMeFile(fileUtils, newFile, encoded_privkey, retFlag);
-	if (retFlag) return retVal;
+
+	if (!addPrivkeyToMeFile(fileUtils, encoded_privkey))
+		return false;
 
 	// Open or create the file "priv.key" for writing
 	if (!fileUtils.openFileOverwrites(PRIV_KEY, privFile))
@@ -251,34 +251,43 @@ bool Client::sendPubKey(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, un
 	return false;
 }
 
-bool Client::addUserToMeFile(utils& fileUtils, std::fstream& newFile, std::string& username, Response& res, char* uuid, bool& retFlag) const
-{
-	retFlag = true;
-	if (!fileUtils.openFileOverwrites(ME_INFO, newFile))
+bool Client::addUserToMeFile(utils fileUtils, std::string& username, Response& res, char* uuid) const {
+	std::fstream newFile;
+	if (!fileUtils.openFileOverwrites(ME_INFO, newFile)) {
+		std::cerr << "Failed to open ME_INFO file." << std::endl;
 		return false;
+	}
 
-	fileUtils.writeToFile(newFile, username.c_str(), username.length());
-	fileUtils.writeToFile(newFile, "\n", strlen("\n"));
-	fileUtils.hexifyToFile(newFile, res._response.payload, res._response.UResponseHeader.SResponseHeader.payload_size);
+	if (!writeToFile(fileUtils, newFile, username + "\n")) return false;
+	if (!fileUtils.hexifyToFile(newFile, res._response.payload, res._response.UResponseHeader.SResponseHeader.payload_size)) return false;
 	fileUtils.closeFile(newFile);
 
 	std::cout << "Updated ME INFO file with name and UUID." << std::endl;
 	memcpy(uuid, res._response.payload, CLIENT_ID_SIZE);
-	retFlag = false;
-	return {};
+	return true;
 }
 
-bool Client::addPrivkeyToMeFile(utils& fileUtils, std::fstream& newFile, std::string& encoded_privkey, bool& retFlag) const
-{
-	retFlag = true;
-	if (!fileUtils.openFile(ME_INFO, newFile, true))
+// Optimized function to add private key to 'ME_INFO' file
+bool Client::addPrivkeyToMeFile(utils fileUtils, std::string& encoded_privkey) const {
+	std::fstream newFile;
+	if (!fileUtils.openFile(ME_INFO, newFile, true)) {
+		std::cerr << "Failed to open ME_INFO file." << std::endl;
 		return false;
+	}
 
-	fileUtils.writeToFile(newFile, "\n", strlen("\n"));
-	fileUtils.writeToFile(newFile, encoded_privkey.c_str(), encoded_privkey.length());
+	if (!writeToFile(fileUtils, newFile, "\n" + encoded_privkey)) return false;
 	fileUtils.closeFile(newFile);
-	retFlag = false;
-	return {};
+	return true;
+
+
+}
+
+bool Client::writeToFile(utils fileUtils, std::fstream& file, const std::string& content) const {
+	if (!fileUtils.writeToFile(file, content.c_str(), content.length())) {
+		std::cerr << "Error writing to file." << std::endl;
+		return false;
+	}
+	return true;
 }
 
 bool Client::decryptAESKey(utils fileUtils, const char* uuid, const char* encryptedAESKey, unsigned char* AESKey) const

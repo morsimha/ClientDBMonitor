@@ -17,7 +17,7 @@ public:
 	bool closeFile(std::fstream&);
 	bool writeToFile(std::fstream&, const char*, uint32_t);
 	bool readFileIntoPayload(std::fstream&, char*, uint32_t);
-	void hexifyToFile(std::fstream&, const char*, unsigned int);
+	bool hexifyToFile(std::fstream&, const char*, unsigned int);
 
 	bool isFile(const std::string&);
 	uint32_t getFileSize(const std::string&);
