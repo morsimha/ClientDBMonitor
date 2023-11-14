@@ -27,7 +27,7 @@ Client.h
 #define AES_KEY_LEN 16
 #define AES_BLOCK_SIZE 16
 #define CLIENT_ID_SIZE 16
-#define MAX_CHAR_FILE_LEN 255
+#define FILE_NAME_LEN 255
 #define TRANSFER_LINES 3
 #define PRIV_KEY_LINES 12
 #define ENC_AES_LEN 128
@@ -48,10 +48,10 @@ class Client {
 	char uuid[CLIENT_ID_SIZE] = { 0 };
 
 public:
-	bool getClientInfo(utils fileUtil, char* uuid) const;
-	bool getServerInfo(utils fileUtils, std::string&, uint16_t&) const;
+	bool getClientServerInfo(utils fileUtil, char* uuid, char* filename, std::string&, uint16_t&) const;
+	bool getServerPort(std::string& portNum, std::string& ip_address, uint16_t& port) const;
 	bool registerUser(utils fileUtils, const SOCKET&, struct sockaddr_in*, std::string username, char*) const;
-	bool sendFile(utils fileUtils, const SOCKET&, struct sockaddr_in*, char*, char*, char*, bool) const;
+	bool sendFile(utils fileUtils, const SOCKET&, struct sockaddr_in*, char*, char*, std::string filename, char*, bool) const;
 	bool handleSocketOperation(const SOCKET& sock, sockaddr_in* sa, const char* requestData, size_t requestDataSize, char* responseData, size_t responseBufferSize) const;
 	bool loginUser(const SOCKET & sock, struct sockaddr_in* sa, char*, char*, char*) const;  
 };

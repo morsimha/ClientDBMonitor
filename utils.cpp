@@ -3,6 +3,12 @@
 // Opens the file, and returns true upon success. If the directories don't exist, they will be created.
 bool utils::openFile(const std::string& fileDestination, std::fstream& thisFile, bool writeFlag)
 {
+
+	if (!isFile(fileDestination)) {
+		std::cerr << "Error:  "<< fileDestination << " doesn't exist. Cannot retrieve file name. " << std::endl;
+		return false;
+	}
+
 	try {
 		std::filesystem::create_directories(std::filesystem::path(fileDestination).parent_path());
 		auto flag = writeFlag ? (std::fstream::out | std::fstream::app) : std::fstream::in;

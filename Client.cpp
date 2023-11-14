@@ -3,67 +3,72 @@
 
 /* Places the server info into the received variables. Returns true upon success and false upon failure. */
 
-bool Client::getClientInfo(utils fileUtils, char* username) const {
+bool Client::getClientServerInfo(utils fileUtils, char* username, char* filename, std::string& ip_address, uint16_t& port) const {
 	std::fstream file;
-	std::string name;
+	std::string portNum;
+	std::string userName;
+	std::string fileName;
 
+	// Check if 'transfer.info' exists and open it. this file must exist for a run.
 
-	// Check if 'me.info' exists and open it
+	if (!fileUtils.openFile(TRANSFER_INFO, file, false)) {
+		throw std::runtime_error("Error: cannot open transfer.info file.");
+	}
+	else {
+		std::cout << "transer.info found! Reading user information.." << std::endl;
+
+		std::getline(file, portNum);
+		std::getline(file, userName);
+		std::getline(file, fileName);
+
+		fileUtils.closeFile(file);
+
+		if (!getServerPort(portNum, ip_address, port)) {
+			throw std::runtime_error("Error: Port is invalid.");
+		}
+
+		if (fileName.length() > FILE_NAME_LEN) {
+			throw std::runtime_error("Error: File name in transfer.info length is too long.");
+		}
+
+		if (!fileUtils.isFile(fileName)) {
+			std::string errorMessage = "Error: " + fileName + " was not found.";
+			throw std::runtime_error(errorMessage);
+		}
+
+		memcpy(username, userName.c_str(), USER_LENGTH);
+		memcpy(filename, fileName.c_str(), FILE_NAME_LEN);
+		std::cout << "File "<< fileName << " was successfully found in transer.info." << std::endl;
+	}
+
+	// Check if 'me.info' exists and get the username, return false for newUser
 	if (fileUtils.isFile(ME_INFO)) {
-		std::cout << "me.info file found, accessing login information.." << std::endl;
+		std::cout << "me.info file found! accessing login information.." << std::endl;
 		if (!fileUtils.openFile(ME_INFO, file, false))
 			throw std::runtime_error("Error: cannot open Me.info file.");
 
-		std::getline(file, name);
-		memcpy(username, name.c_str(), USER_LENGTH);
+		std::getline(file, userName);
+		// overiding transfer.info file username , because we priorotize login the user within me.info if it exist.
+		memcpy(username, userName.c_str(), USER_LENGTH);
 		fileUtils.closeFile(file);
 		// not a new user - returing false
-
 		return false;
-	}
-	else if (fileUtils.isFile(TRANSFER_INFO)) {
-		std::cout << "only transfer.info file found, accessing register information.." << std::endl;
-		if (!fileUtils.openFile(TRANSFER_INFO, file, false))
-			throw std::runtime_error("Error: cannot open Me.info file.");
-		std::getline(file, name);
-		std::getline(file, name);
-		memcpy(username, name.c_str(), USER_LENGTH);
-		fileUtils.closeFile(file);
-		// new user - returing true
-		return true;
-	}
+	} 
 
-	//std::cerr << "Error: Transfer.info and Me.info files do not exist. " << std::endl;
-	throw std::runtime_error("Error: Transfer.info and Me.info files do not exist.");
-
+	//new user, return true
+	return true;
 }
 
-bool Client::getServerInfo(utils fileUtils, std::string& ip_address, uint16_t& port) const
+bool Client::getServerPort(std::string& portNum, std::string& ip_address, uint16_t& port) const
 {
-	std::fstream newFile;
-	std::string fullLine;
-	if (!fileUtils.isFile(TRANSFER_INFO)) {
-		std::cerr << "Error: Transfer file doesn't exist. " << std::endl;
-		return false;
-	}
-	if (!fileUtils.openFile(TRANSFER_INFO, newFile, false))
-		return false;
-	
-	if (!std::getline(newFile, fullLine)) {
-		std::cerr << "Error reading from transfer file. " << std::endl;
-		return false;
-	}
-	fileUtils.closeFile(newFile);
+	size_t pos = portNum.find(":");
+	ip_address = portNum.substr(0, pos);
+	portNum.erase(0, pos + 1);
 
-	size_t pos = fullLine.find(":");
-	ip_address = fullLine.substr(0, pos);
-	fullLine.erase(0, pos + 1);
-
-	int tmp = std::stoi(fullLine);
+	int tmp = std::stoi(portNum);
 	if (tmp <= static_cast<int>(UINT16_MAX) && tmp >= 0)
 		port = static_cast<uint16_t>(tmp);
 	else {
-		std::cerr << "Error: Port is invalid." << std::endl;
 		return false;
 	}
 	return true;
@@ -94,7 +99,7 @@ bool Client::loginUser(const SOCKET& sock, struct sockaddr_in* sa, char* usernam
 
 	// Check for a successful login response code
 	if (res._response.UResponseHeader.SResponseHeader.code == LOGIN_SUCCESS) {
-		std::cout << "Successfully logged in - " << username << std::endl;
+		std::cout << "Successfully logged in!"<< std::endl;
 		// Copy the encrypted AES key and the UUID from the response payload
 		memcpy(uuid, res._response.payload, CLIENT_ID_SIZE);
 		memcpy(AESKey, res._response.payload + CLIENT_ID_SIZE, ENC_AES_LEN);
@@ -103,12 +108,12 @@ bool Client::loginUser(const SOCKET& sock, struct sockaddr_in* sa, char* usernam
 
 	else if (res._response.UResponseHeader.SResponseHeader.code == LOGIN_ERROR) {
 		std::cerr << "Error: Failed to login, this user needs to be registered!" << std::endl;
-		std::cerr << "Trying to login instead.." << std::endl;
+		std::cerr << "Trying to Register " << username << " as a new user.." << std::endl;
 		closesocket(sock);
 	}
 
 	else if (res._response.UResponseHeader.SResponseHeader.code == GENERAL_ERROR) {
-		std::cout << "Error: Server failed to login the user for unkown reason. " << std::endl;
+		std::cout << "Error: Server failed to login the user because of general error. " << std::endl;
 	}
 	return false;
 
@@ -174,17 +179,13 @@ bool Client::sendPubKey(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, un
 	std::fstream newFile;
 	std::fstream privFile;
 
-	try {
-		int connRes = connect(sock, (struct sockaddr*)sa, sizeof(*sa));
-	}
-	catch (std::exception& e) {
-		std::cerr << "Exception: " << e.what() << std::endl;
-		return false;
-	}
-
 	std::string privkey = rsapriv.getPrivateKey();
 	std::string encoded_privkey = Base64Wrapper::encode(privkey);
 
+	Request req;
+	Response res;
+	char responseBuffer[PACKET_SIZE] = { 0 };
+	char requestBuffer[PACKET_SIZE] = { 0 };
 
 	if (!addPrivkeyToMeFile(fileUtils, encoded_privkey))
 		return false;
@@ -199,10 +200,8 @@ bool Client::sendPubKey(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, un
 	// Close the file "priv.key"
 	fileUtils.closeFile(privFile);
 
-	Request req;
-	char requestBuffer[PACKET_SIZE] = { 0 };
 	if (username.length() >= USER_LENGTH) {
-		std::cout << "Username doesn't meet the length criteria. " << std::endl;
+		std::cout << "Username is too long. " << std::endl;
 		return false;
 	}
 
@@ -211,17 +210,18 @@ bool Client::sendPubKey(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, un
 	memcpy(req._request.URequestHeader.SRequestHeader.cliend_id, uuid, CLIENT_ID_SIZE);
 	memcpy(req._request.payload, username.c_str(), username.length() + 1);
 	memcpy(req._request.payload + username.length() + 1, pubkey.c_str(), PUB_KEY_LEN);
-	std::cout << "Sending the following pubkey: " << pubkey.c_str() << "." << std::endl;
 	req._request.URequestHeader.SRequestHeader.code = PUB_KEY_SEND;
 
 	req.packRequest(requestBuffer);
-	send(sock, requestBuffer, PACKET_SIZE, 0);
 
-	char buffer[PACKET_SIZE] = { 0 };
-	recv(sock, buffer, PACKET_SIZE, 0);
+	std::cout << "Sending Public Key for " << username << ".." << std::endl;
 
-	Response res;
-	res.unpackResponse(buffer);
+	if (!handleSocketOperation(sock, sa, requestBuffer, PACKET_SIZE, responseBuffer, PACKET_SIZE)) {
+		return false;
+	}
+
+	res.unpackResponse(responseBuffer);
+
 	if (res._response.UResponseHeader.SResponseHeader.code == GENERAL_ERROR) {
 		std::cout << "Error: Server failed to receive Public Key. " << std::endl;
 		return false;
@@ -267,7 +267,6 @@ bool Client::addPrivkeyToMeFile(utils fileUtils, std::string& encoded_privkey) c
 	if (!fileUtils.writeToFile(newFile, content.c_str(), content.length())) return false;
 	fileUtils.closeFile(newFile);
 	return true;
-
 }
 
 bool Client::decryptAESKey(utils fileUtils, const char* uuid, const char* encryptedAESKey, unsigned char* AESKey) const
@@ -312,17 +311,17 @@ bool Client::decryptAESKey(utils fileUtils, const char* uuid, const char* encryp
 }
 
 /* The function handles sending a file over to the server. */
-bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char* username, char* uuid, char* EncryptedAESKey,bool isNewUser) const
+bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char* username, char* uuid, std::string filename, char* EncryptedAESKey, bool isNewUser) const
 {
 	unsigned char AESKey[AES_KEY_LEN] = { 0 };
 	std::fstream requestedFile;
 	char requestBuffer[PACKET_SIZE] = { 0 };
 
 
-	if (isNewUser){
+	if (isNewUser) {
 		if (!sendPubKey(fileUtils, sock, sa, AESKey, username, uuid))
 			return false;
-			}
+	}
 	else {
 		if (!decryptAESKey(fileUtils, uuid, EncryptedAESKey, AESKey))
 			return false;
@@ -334,43 +333,11 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 			return false;
 		}
 	}
-	
-	if (!fileUtils.isFile(TRANSFER_INFO)) {
-		std::cerr << "Error: Transfer file doesn't exist. Cannot retrieve file name. " << std::endl;
-		closesocket(sock);
-		return false;
-	}
-	if (!fileUtils.openFile(TRANSFER_INFO, requestedFile, false)) {
-		std::cerr << "Error: Failed to open TRANSFER INFO file." << std::endl;
-		closesocket(sock);
-		return false;
-	}
-	
-	std::string filename;
-
-	for (int i = 0; i < TRANSFER_LINES; i++)
-		std::getline(requestedFile, filename);
-	
-	fileUtils.closeFile(requestedFile);
-	
-	if (filename.length() > MAX_CHAR_FILE_LEN) {
-		std::cerr << "Error: Filename length too long. " << std::endl;
-		closesocket(sock);
-		return false;
-	}
-
-	if (!fileUtils.isFile(filename)) {
-		std::cerr << "Error: Filename doesn't exist. " << std::endl;
-		closesocket(sock);
-		return false;
-	}
-
-	std::cout << "Filename successfully found in transer_info. Preparing to send file." << std::endl;
 
 	Request req;
 	uint32_t fileSize = fileUtils.getFileSize(filename);
 	uint32_t contentSize = fileSize + (AES_BLOCK_SIZE - fileSize % AES_BLOCK_SIZE); // After encryption
-	req._request.URequestHeader.SRequestHeader.payload_size = contentSize + MAX_CHAR_FILE_LEN + sizeof(uint32_t);
+	req._request.URequestHeader.SRequestHeader.payload_size = contentSize + FILE_NAME_LEN + sizeof(uint32_t);
 	uint32_t payloadSize = req._request.URequestHeader.SRequestHeader.payload_size;
 	req._request.payload = new char[payloadSize];
 	memset(req._request.payload, 0, payloadSize);
@@ -383,8 +350,8 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 	memcpy(payloadPtr, &contentSize, sizeof(uint32_t));
 	payloadPtr += sizeof(uint32_t);
 	memcpy(payloadPtr, filename.c_str(), filename.length());
-	payloadPtr += MAX_CHAR_FILE_LEN;
-	
+	payloadPtr += FILE_NAME_LEN;
+
 	// Read File into Payload
 	std::string filepath = "./" + filename; // We assume the file is in current dir
 	fileUtils.openFileBin(filepath, requestedFile, false);
@@ -399,8 +366,8 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 
 	AESWrapper wrapper(AESKey, AES_KEY_LEN);
 	std::string tmpEncryptedData = wrapper.encrypt(payloadPtr, fileSize);
-	memcpy(payloadPtr, tmpEncryptedData.c_str(), tmpEncryptedData.length());	
-	
+	memcpy(payloadPtr, tmpEncryptedData.c_str(), tmpEncryptedData.length());
+
 	bool crc_confirmed = false;
 	size_t tries = 0;
 
@@ -434,7 +401,7 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 		std::cout << "Server received file, checking checksum.." << std::endl;
 
 		uint32_t received_checksum;
-		memcpy(&received_checksum, res._response.payload + sizeof(uint32_t) + MAX_CHAR_FILE_LEN, sizeof(uint32_t));
+		memcpy(&received_checksum, res._response.payload + sizeof(uint32_t) + FILE_NAME_LEN, sizeof(uint32_t));
 
 		if (checksum == received_checksum) {
 			crc_confirmed = true;
@@ -450,8 +417,8 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 		if (tries == MAX_TRIES)
 			newReq._request.URequestHeader.SRequestHeader.code = CRC_INVALID_EXIT;
 
-		newReq._request.URequestHeader.SRequestHeader.payload_size = MAX_CHAR_FILE_LEN;
-		newReq._request.payload = new char[MAX_CHAR_FILE_LEN];
+		newReq._request.URequestHeader.SRequestHeader.payload_size = FILE_NAME_LEN;
+		newReq._request.payload = new char[FILE_NAME_LEN];
 		memcpy(newReq._request.payload, filename.c_str(), filename.length());
 		memcpy(newReq._request.URequestHeader.SRequestHeader.cliend_id, uuid, CLIENT_ID_SIZE);
 		memset(requestBuffer, 0, PACKET_SIZE);
@@ -470,7 +437,7 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 			closesocket(sock);
 			return false;
 		}
-		else if(res._response.UResponseHeader.SResponseHeader.code == MSG_RECEIVED){
+		else if (res._response.UResponseHeader.SResponseHeader.code == MSG_RECEIVED) {
 			std::cout << "The file was successfully (and safely) uploaded to the server." << std::endl;
 		}
 	}
