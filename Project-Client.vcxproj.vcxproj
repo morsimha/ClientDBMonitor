@@ -150,21 +150,21 @@
     <ClCompile Include="Client.cpp" />
     <ClCompile Include="AESWrapper.cpp" />
     <ClCompile Include="Base64Wrapper.cpp" />
-    <ClCompile Include="CRC.cpp" />
+    <ClCompile Include="CRC32.cpp" />
     <ClCompile Include="utils.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Request.cpp" />
-    <ClCompile Include="Response.cpp" />
+    <ClCompile Include="ClientRequest.cpp" />
+    <ClCompile Include="ClientResponse.cpp" />
     <ClCompile Include="RSAWrapper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Client.h" />
     <ClInclude Include="AESWrapper.h" />
     <ClInclude Include="Base64Wrapper.h" />
-    <ClInclude Include="CRC.h" />
+    <ClInclude Include="CRC32.h" />
     <ClInclude Include="utils.h" />
-    <ClInclude Include="Request.h" />
-    <ClInclude Include="Response.h" />
+    <ClInclude Include="ClientRequest.h" />
+    <ClInclude Include="ClientResponse.h" />
     <ClInclude Include="RSAWrapper.h" />
   </ItemGroup>
   <ItemGroup>

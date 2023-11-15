@@ -1,7 +1,7 @@
-#include "Request.h"
+#include "ClientRequest.h"
 
-/* Packs the Response struct into a buffer according to the given protocol. */
-void Request::packRequest(char* buffer)
+/* Packs the ClientResponse struct into a buffer according to the given protocol. */
+void ClientRequest::packRequest(char* buffer)
 {
 	memcpy(buffer, _request.URequestHeader.buffer, sizeof(_request.URequestHeader));
 	if (_request.payload != nullptr) {
@@ -12,13 +12,13 @@ void Request::packRequest(char* buffer)
 }
 
 /* Returns the header offset. */
-uint32_t Request::offset() const
+uint32_t ClientRequest::offset() const
 {
 	return sizeof(_request.URequestHeader);
 }
 
 /* ctor */
-Request::Request()
+ClientRequest::ClientRequest()
 {
 	memset(_request.URequestHeader.buffer, 0, sizeof(_request.URequestHeader.SRequestHeader));
 	_request.URequestHeader.SRequestHeader.version = SERVER_VER;
@@ -26,7 +26,7 @@ Request::Request()
 }
 
 /* dtor */
-Request::~Request()
+ClientRequest::~ClientRequest()
 {
 	delete[] _request.payload;
 }

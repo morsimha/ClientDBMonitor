@@ -76,8 +76,8 @@ bool Client::getServerPort(std::string& portNum, std::string& ip_address, uint16
 
 bool Client::loginUser(const SOCKET& sock, struct sockaddr_in* sa, char* username, char* uuid, char* AESKey) const {
 
-	Request req;
-	Response res;
+	ClientRequest req;
+	ClientResponse res;
 
 	char requestBuffer[PACKET_SIZE] = { 0 };
 	char responseBuffer[PACKET_SIZE] = {0};
@@ -124,8 +124,8 @@ bool Client::registerUser(utils fileUtils, const SOCKET& sock, struct sockaddr_i
 {
 	std::fstream newFile;
 	//std::string uuid_from_ME;
-	Request req;
-	Response res;
+	ClientRequest req;
+	ClientResponse res;
 
 	char requestBuffer[PACKET_SIZE] = { 0 };
 	char responseBuffer[PACKET_SIZE] = { 0 };
@@ -182,8 +182,8 @@ bool Client::sendPubKey(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, un
 	std::string privkey = rsapriv.getPrivateKey();
 	std::string encoded_privkey = Base64Wrapper::encode(privkey);
 
-	Request req;
-	Response res;
+	ClientRequest req;
+	ClientResponse res;
 	char responseBuffer[PACKET_SIZE] = { 0 };
 	char requestBuffer[PACKET_SIZE] = { 0 };
 
@@ -239,7 +239,7 @@ bool Client::sendPubKey(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, un
 	return false;
 }
 
-bool Client::addUserToMeFile(utils fileUtils, std::string& username, Response& res, char* uuid) const {
+bool Client::addUserToMeFile(utils fileUtils, std::string& username, ClientResponse& res, char* uuid) const {
 	std::fstream newFile;
 	if (!fileUtils.openFileOverwrites(ME_INFO, newFile)) {
 		std::cerr << "Failed to open ME_INFO file." << std::endl;
@@ -334,7 +334,7 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 		}
 	}
 
-	Request req;
+	ClientRequest req;
 	uint32_t fileSize = fileUtils.getFileSize(filename);
 	uint32_t contentSize = fileSize + (AES_BLOCK_SIZE - fileSize % AES_BLOCK_SIZE); // After encryption
 	req._request.URequestHeader.SRequestHeader.payload_size = contentSize + FILE_NAME_LEN + sizeof(uint32_t);
@@ -360,7 +360,7 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 
 
 	// Calculate checksum of file before encryption
-	CRC digest;
+	CRC32 digest;
 	digest.update((unsigned char*)payloadPtr, fileSize);
 	uint32_t checksum = digest.digest();
 
@@ -390,7 +390,7 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 		char buffer[PACKET_SIZE] = { 0 };
 		recv(sock, buffer, PACKET_SIZE, 0); // Expecting Code 2103
 
-		Response res;
+		ClientResponse res;
 		res.unpackResponse(buffer);
 		if (res._response.UResponseHeader.SResponseHeader.code != FILE_OK_CRC) {
 			std::cout << "Error: Server responded with an error. " << std::endl;
@@ -412,7 +412,7 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 			std::cout << "Checksum does not match: " << tries << "/3" << " tries." << std::endl;
 		}
 
-		Request newReq;
+		ClientRequest newReq;
 		newReq._request.URequestHeader.SRequestHeader.code = crc_confirmed ? CRC_OK : CRC_INVALID_RETRY;
 		if (tries == MAX_TRIES)
 			newReq._request.URequestHeader.SRequestHeader.code = CRC_INVALID_EXIT;
@@ -430,7 +430,7 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 		char buffer[PACKET_SIZE] = { 0 };
 		recv(sock, buffer, PACKET_SIZE, 0); // Expecting Code 2104
 
-		Response res;
+		ClientResponse res;
 		res.unpackResponse(buffer);
 		if (res._response.UResponseHeader.SResponseHeader.code == GENERAL_ERROR) {
 			std::cout << "Error: Server did not confirm receiving the message. " << std::endl;

@@ -1,6 +1,4 @@
-#include "CRC.h"
-
-/* This code is taken from Stackoverflow. */
+#include "CRC32.h"
 
 static uint32_t const crctab[256] = {
 	0x00000000,	0x04C11DB7,	0x09823B6E,	0x0D4326D9,	0x130476DC,
@@ -58,17 +56,17 @@ static uint32_t const crctab[256] = {
 };
 
 
-CRC::CRC()
+CRC32::CRC32()
 {
 	nchar = 0;
 	crc = 0;
 }
 
-CRC::~CRC()
+CRC32::~CRC32()
 {
 }
 
-void CRC::update(unsigned char* buf, uint32_t size) {
+void CRC32::update(unsigned char* buf, uint32_t size) {
 	uint32_t crc_local = this->crc;
 
 	for (uint32_t i = 0; i < size; i++)
@@ -79,7 +77,7 @@ void CRC::update(unsigned char* buf, uint32_t size) {
 	this->nchar += size;
 }
 
-uint32_t CRC::digest() {
+uint32_t CRC32::digest() {
 	uint32_t crc_local = this->crc;
 	uint32_t n = this->nchar;
 	uint32_t c = 0;

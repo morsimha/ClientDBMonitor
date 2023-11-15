@@ -1,7 +1,7 @@
-#include "Response.h"
+#include "ClientResponse.h"
 
-/* Unpacks the buffer received into the Response struct according to the given protocol. */
-void Response::unpackResponse(char* buffer)
+/* Unpacks the buffer received into the ClientResponse struct according to the given protocol. */
+void ClientResponse::unpackResponse(char* buffer)
 {
 	memcpy(_response.UResponseHeader.buffer, buffer, sizeof(_response.UResponseHeader));
 	char* ptr = buffer + sizeof(_response.UResponseHeader);
@@ -13,13 +13,13 @@ void Response::unpackResponse(char* buffer)
 }
 
 /* Returns the header offset. */
-uint32_t Response::offset() const
+uint32_t ClientResponse::offset() const
 {
 	return sizeof(_response.UResponseHeader);
 }
 
 /* ctor */
-Response::Response()
+ClientResponse::ClientResponse()
 {
 	memset(_response.UResponseHeader.buffer, 0, sizeof(_response.UResponseHeader.SResponseHeader));
 	_response.UResponseHeader.SResponseHeader.version = SERVER_VER;
@@ -27,7 +27,7 @@ Response::Response()
 }
 
 /* dtor */
-Response::~Response()
+ClientResponse::~ClientResponse()
 {
 	delete[] _response.payload;
 }

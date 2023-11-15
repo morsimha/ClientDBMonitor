@@ -1,5 +1,5 @@
 /*
-Request.h
+ClientRequest.h
 */
 
 #pragma once
@@ -11,7 +11,7 @@ Request.h
 #define SERVER_VER 3
 #define PACKET_SIZE 1024
 
-class Request {
+class ClientRequest {
 	friend class Client;
 #pragma pack(push, 1)
 	struct RequestFormat {
@@ -29,6 +29,6 @@ class Request {
 #pragma pack(pop)
 	void packRequest(char*);
 	uint32_t offset() const;
-	Request();
-	~Request();
+	ClientRequest();
+	~ClientRequest();
 };

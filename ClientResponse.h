@@ -1,5 +1,5 @@
 /*
-Response.h
+ClientResponse.h
 */
 
 #pragma once
@@ -8,9 +8,9 @@ Response.h
 
 
 #define SERVER_VER 3
-#define PACKET_SIZE 1024 // see how to do this better 1 time
+#define PACKET_SIZE 1024
 
-class Response {
+class ClientResponse {
 	friend class Client;
 #pragma pack(push, 1)
 	struct ResponseFormat {
@@ -27,6 +27,6 @@ class Response {
 #pragma pack(pop)
 	void unpackResponse(char*);
 	uint32_t offset() const;
-	Response();
-	~Response();
+	ClientResponse();
+	~ClientResponse();
 };
