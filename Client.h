@@ -20,18 +20,18 @@ Client.h
 
 #define PACKET_SIZE 1024
 #define USER_LENGTH 255
-#define ME_INFO "./me.info"
-#define TRANSFER_INFO "./transfer.info"
-#define PRIV_KEY "./priv.key"
 #define PUB_KEY_LEN 160
 #define AES_KEY_LEN 16
 #define AES_BLOCK_SIZE 16
 #define CLIENT_ID_SIZE 16
 #define FILE_NAME_LEN 255
-#define TRANSFER_LINES 3
+#define TRANSFER_INFO_LEN 3
 #define PRIV_KEY_LINES 12
 #define ENC_AES_LEN 128
 #define MAX_TRIES 3
+#define TRANSFER_INFO "./transfer.info"
+#define ME_INFO "./me.info"
+#define PRIV_KEY "./priv.key"
 
 
 class Client {

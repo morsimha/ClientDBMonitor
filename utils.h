@@ -12,14 +12,14 @@ utils.h
 class utils {
 public:
 	bool openFile(const std::string&, std::fstream&, bool);
-	bool openFileBin(const std::string&, std::fstream&, bool);
-	bool openFileOverwrites(const std::string&, std::fstream&);
+	bool openBinaryFile(const std::string&, std::fstream&, bool);
+	bool OverwriteFile(const std::string&, std::fstream&);
 	bool closeFile(std::fstream&);
 	bool writeToFile(std::fstream&, const char*, uint32_t);
-	bool readFileIntoPayload(std::fstream&, char*, uint32_t);
-	bool hexifyToFile(std::fstream&, const char*, unsigned int);
+	bool readFileIntoBuffer(std::fstream&, char*, uint32_t);
+	bool bufferToHexFile(std::fstream&, const char*, unsigned int);
 
-	bool isFile(const std::string&);
-	uint32_t getFileSize(const std::string&);
+	bool isExist(const std::string&);
+	uint32_t getSize(const std::string&);
 };
 

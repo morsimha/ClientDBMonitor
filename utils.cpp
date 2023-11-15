@@ -1,10 +1,25 @@
 #include "utils.h"
 
-// Opens the file, and returns true upon success. If the directories don't exist, they will be created.
+
+// Check if a file exists at the given path.
+bool utils::isExist(const std::string& fileDestination)
+{
+	std::filesystem::path pathToCheck = fileDestination;
+	return std::filesystem::exists(fileDestination);
+}
+
+// returns the size of a file in bytes.
+uint32_t utils::getSize(const std::string& fileDestination)
+{
+	std::filesystem::path pathToCheck = fileDestination;
+	return std::filesystem::file_size(pathToCheck);
+}
+
+// Open a file for reading or writing, creating directories if needed.
 bool utils::openFile(const std::string& fileDestination, std::fstream& thisFile, bool writeFlag)
 {
 
-	if (!isFile(fileDestination)) {
+	if (!isExist(fileDestination)) {
 		std::cerr << "Error:  "<< fileDestination << " doesn't exist. Cannot retrieve file name. " << std::endl;
 		return false;
 	}
@@ -21,8 +36,8 @@ bool utils::openFile(const std::string& fileDestination, std::fstream& thisFile,
 	}
 }
 
-/* Opens the file as binary, and returns true upon success. If the directories don't exist, they will be created. */
-bool utils::openFileBin(const std::string& fileDestination, std::fstream& thisFile, bool writeFlag)
+// Opens a binary file
+bool utils::openBinaryFile(const std::string& fileDestination, std::fstream& thisFile, bool writeFlag)
 {
 	std::filesystem::path pathToCheck = fileDestination;
 	try {
@@ -37,8 +52,8 @@ bool utils::openFileBin(const std::string& fileDestination, std::fstream& thisFi
 	}
 }
 
-/* Opens the file as binary, and returns true upon success, overwrites written content. If the directories don't exist, they will be created. */
-bool utils::openFileOverwrites(const std::string& fileDestination, std::fstream& thisFile)
+// overwrites the content.
+bool utils::OverwriteFile(const std::string& fileDestination, std::fstream& thisFile)
 {
 	std::filesystem::path pathToCheck = fileDestination;
 	try {
@@ -54,20 +69,21 @@ bool utils::openFileOverwrites(const std::string& fileDestination, std::fstream&
 	return false;
 }
 
-/* Closes a file, and returns true upon success. */
-bool utils::closeFile(std::fstream& thisFile)
+// Read a specific number of bytes from a file into the buffer buffer.
+bool utils::readFileIntoBuffer(std::fstream& thisFile, char* buffer, uint32_t count)
 {
 	try {
-		thisFile.close();
+		thisFile.read(buffer, count);
 		return true;
 	}
 	catch (std::exception& e) {
 		std::cerr << "Exception: " << e.what() << std::endl;
 		return false;
 	}
+	return false;
 }
 
-/* Writes content into a file. fstream object is received, so the calling function is responsible for opening. */
+// Write content to an open file.
 bool utils::writeToFile(std::fstream& thisFile, const char* content, uint32_t size)
 {
 	if (!thisFile.is_open() || content == nullptr || size == 0) {
@@ -85,22 +101,21 @@ bool utils::writeToFile(std::fstream& thisFile, const char* content, uint32_t si
 	}
 }
 
-/* Reads the contents of a file into the payload buffer */
-bool utils::readFileIntoPayload(std::fstream& thisFile, char* payload, uint32_t count)
+// Close an open file.
+bool utils::closeFile(std::fstream& thisFile)
 {
 	try {
-		thisFile.read(payload, count);
+		thisFile.close();
 		return true;
 	}
 	catch (std::exception& e) {
 		std::cerr << "Exception: " << e.what() << std::endl;
 		return false;
 	}
-	return false;
 }
 
 /* Given a buffer, writes the buffer in hex into a file. (Inspired by the code provided by the lecturers, w/ small tweaks)*/
-bool utils::hexifyToFile(std::fstream& thisFile, const char* buffer, unsigned int length)
+bool utils::bufferToHexFile(std::fstream& thisFile, const char* buffer, unsigned int length)
 {
 	std::ios::fmtflags f(thisFile.flags());
 	thisFile << std::hex;
@@ -117,16 +132,3 @@ bool utils::hexifyToFile(std::fstream& thisFile, const char* buffer, unsigned in
 
 }
 
-/* Returns true if fileDestination exists on the server, otherwise returns false. */
-bool utils::isFile(const std::string& fileDestination)
-{
-	std::filesystem::path pathToCheck = fileDestination;
-	return std::filesystem::exists(fileDestination);
-}
-
-/* Returns the size of file received. This function assumes that 4 bytes are enough to store the size. */
-uint32_t utils::getFileSize(const std::string& fileDestination)
-{
-	std::filesystem::path pathToCheck = fileDestination;
-	return std::filesystem::file_size(pathToCheck);
-}
