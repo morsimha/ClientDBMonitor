@@ -153,8 +153,7 @@
     <ClCompile Include="CRC32.cpp" />
     <ClCompile Include="utils.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="ClientRequest.cpp" />
-    <ClCompile Include="ClientResponse.cpp" />
+    <ClCompile Include="NetworkProtocol.cpp" />
     <ClCompile Include="RSAWrapper.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -163,8 +162,7 @@
     <ClInclude Include="Base64Wrapper.h" />
     <ClInclude Include="CRC32.h" />
     <ClInclude Include="utils.h" />
-    <ClInclude Include="ClientRequest.h" />
-    <ClInclude Include="ClientResponse.h" />
+    <ClInclude Include="NetworkProtocol.h" />
     <ClInclude Include="RSAWrapper.h" />
   </ItemGroup>
   <ItemGroup>

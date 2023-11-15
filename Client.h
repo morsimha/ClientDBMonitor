@@ -10,12 +10,12 @@ Client.h
 
 #include <string>
 #include "utils.h"
-#include "ClientResponse.h"
-#include "ClientRequest.h"
 #include "RSAWrapper.h"
 #include "AESWrapper.h"
 #include "Base64Wrapper.h"
 #include "CRC32.h"
+#include "NetworkProtocol.h"
+
 
 
 #define PACKET_SIZE 1024
