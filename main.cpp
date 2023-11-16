@@ -23,9 +23,9 @@ int main() {
 	std::string ip_addr;
 	uint16_t port;
 
-	char uuid[CLIENT_ID_SIZE] = { 0 };
-	char username[USER_LENGTH] = { 0 };
-	char filename[FILE_NAME_LEN] = { 0 };
+	char uuid[MAX_ID_SIZE] = { 0 };
+	char username[MAX_USER_LEN] = { 0 };
+	char filename[MAX_FILE_LEN] = { 0 };
 	char AESEncrypted[ENC_AES_LEN] = { 0 };
 	WSADATA wsaData;
 	SOCKET sock;

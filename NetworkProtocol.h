@@ -7,7 +7,7 @@ NetworkProtocol.h
 #include <stdint.h>
 
 #define CLIENT_SIZE 16
-#define PACKET_SIZE 1024
+#define MAX_PACKET_SIZE 1024
 #define SERVER_VER 3
 
 class ClientRequest {

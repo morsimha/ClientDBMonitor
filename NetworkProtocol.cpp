@@ -15,7 +15,7 @@ void ClientRequest::packRequest(char* buffer) {
     memcpy(buffer, _request.URequestHeader.buffer, sizeof(_request.URequestHeader));
     if (_request.payload != nullptr) {
         uint32_t payloadSize = _request.URequestHeader.SRequestHeader.payload_size;
-        uint32_t currPayload = payloadSize < PACKET_SIZE - offset() ? payloadSize : PACKET_SIZE - offset();
+        uint32_t currPayload = payloadSize < MAX_PACKET_SIZE - offset() ? payloadSize : MAX_PACKET_SIZE - offset();
         memcpy(buffer + sizeof(_request.URequestHeader), _request.payload, currPayload);
     }
 }

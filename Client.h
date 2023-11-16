@@ -18,17 +18,17 @@ Client.h
 
 
 
-#define PACKET_SIZE 1024
-#define USER_LENGTH 255
-#define PUB_KEY_LEN 160
-#define AES_KEY_LEN 16
-#define AES_BLOCK_SIZE 16
-#define CLIENT_ID_SIZE 16
-#define FILE_NAME_LEN 255
-#define TRANSFER_INFO_LEN 3
-#define PRIV_KEY_LINES 12
-#define ENC_AES_LEN 128
+#define MAX_PACKET_SIZE 1024
+#define MAX_USER_LEN 255
+#define MAX_PUBKEY_LEN 160
+#define MAX_AES_LEN 16
+#define MAX_AES_SIZE 16
+#define MAX_ID_SIZE 16
+#define MAX_FILE_LEN 255
 #define MAX_TRIES 3
+#define TRANSFER_LINES 3
+#define PRIVKEY_LINES 12
+#define ENC_AES_LEN 128
 #define TRANSFER_INFO "./transfer.info"
 #define ME_INFO "./me.info"
 #define PRIV_KEY "./priv.key"
@@ -44,8 +44,8 @@ class Client {
 	bool sendPubKey(utils fileUtils, const SOCKET&, struct sockaddr_in*, unsigned char*, std::string username, char*) const;
 	bool decryptAESKey(utils fileUtils, const char* uuid, const char* encryptedAESKey, unsigned char* AESKey) const;
 	std::string retrievePrivateKey() const;
-	unsigned char AESKey[AES_KEY_LEN] = {0};
-	char uuid[CLIENT_ID_SIZE] = { 0 };
+	unsigned char AESKey[MAX_AES_LEN] = {0};
+	char uuid[MAX_ID_SIZE] = { 0 };
 
 public:
 	bool getClientServerInfo(utils fileUtil, char* uuid, char* filename, std::string&, uint16_t&) const;

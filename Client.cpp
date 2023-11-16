@@ -27,7 +27,7 @@ bool Client::getClientServerInfo(utils fileUtils, char* username, char* filename
 			throw std::runtime_error("-F- Port is invalid.");
 		}
 
-		if (fileName.length() > FILE_NAME_LEN) {
+		if (fileName.length() > MAX_FILE_LEN) {
 			throw std::runtime_error("-F- File name in transfer.info length is too long.");
 		}
 
@@ -36,8 +36,8 @@ bool Client::getClientServerInfo(utils fileUtils, char* username, char* filename
 			throw std::runtime_error(errorMessage);
 		}
 
-		memcpy(username, userName.c_str(), USER_LENGTH);
-		memcpy(filename, fileName.c_str(), FILE_NAME_LEN);
+		memcpy(username, userName.c_str(), MAX_USER_LEN);
+		memcpy(filename, fileName.c_str(), MAX_FILE_LEN);
 		std::cout << "File " << fileName << " was successfully found in transer.info." << std::endl;
 	}
 
@@ -49,7 +49,7 @@ bool Client::getClientServerInfo(utils fileUtils, char* username, char* filename
 
 		std::getline(file, userName);
 		// overiding transfer.info file username , because we priorotize login the user within me.info if it exist.
-		memcpy(username, userName.c_str(), USER_LENGTH);
+		memcpy(username, userName.c_str(), MAX_USER_LEN);
 		fileUtils.closeFile(file);
 		// not a new user - returing false
 		return false;
@@ -79,8 +79,8 @@ bool Client::loginUser(const SOCKET& sock, struct sockaddr_in* sa, char* usernam
 	ClientRequest req;
 	ClientResponse res;
 
-	char requestBuffer[PACKET_SIZE] = { 0 };
-	char responseBuffer[PACKET_SIZE] = { 0 };
+	char requestBuffer[MAX_PACKET_SIZE] = { 0 };
+	char responseBuffer[MAX_PACKET_SIZE] = { 0 };
 
 	// Set the request header fields for a login request
 	req._request.URequestHeader.SRequestHeader.payload_size = strlen(username) + 1;  // +1 for the null terminator
@@ -91,7 +91,7 @@ bool Client::loginUser(const SOCKET& sock, struct sockaddr_in* sa, char* usernam
 
 	std::cout << "Sending login request for " << username << "." << std::endl;
 
-	if (!handleSocketOperation(sock, sa, requestBuffer, PACKET_SIZE, responseBuffer, PACKET_SIZE)) {
+	if (!handleSocketOperation(sock, sa, requestBuffer, MAX_PACKET_SIZE, responseBuffer, MAX_PACKET_SIZE)) {
 		return false;
 	}
 
@@ -101,8 +101,8 @@ bool Client::loginUser(const SOCKET& sock, struct sockaddr_in* sa, char* usernam
 	if (res._response.UResponseHeader.SResponseHeader.code == LOGIN_SUCCESS) {
 		std::cout << "Successfully logged in!" << std::endl;
 		// Copy the encrypted AES key and the UUID from the response payload
-		memcpy(uuid, res._response.payload, CLIENT_ID_SIZE);
-		memcpy(AESKey, res._response.payload + CLIENT_ID_SIZE, ENC_AES_LEN);
+		memcpy(uuid, res._response.payload, MAX_ID_SIZE);
+		memcpy(AESKey, res._response.payload + MAX_ID_SIZE, ENC_AES_LEN);
 		return true;
 	}
 
@@ -127,10 +127,10 @@ bool Client::registerUser(utils fileUtils, const SOCKET& sock, struct sockaddr_i
 	ClientRequest req;
 	ClientResponse res;
 
-	char requestBuffer[PACKET_SIZE] = { 0 };
-	char responseBuffer[PACKET_SIZE] = { 0 };
+	char requestBuffer[MAX_PACKET_SIZE] = { 0 };
+	char responseBuffer[MAX_PACKET_SIZE] = { 0 };
 
-	if (username.length() >= USER_LENGTH) {
+	if (username.length() >= MAX_USER_LEN) {
 		std::cout << "Username doesn't meet the length criteria. " << std::endl;
 		return false;
 	}
@@ -142,11 +142,11 @@ bool Client::registerUser(utils fileUtils, const SOCKET& sock, struct sockaddr_i
 	req.packRequest(requestBuffer);
 
 	std::cout << "Sending register request for " << username << "." << std::endl;
-	if (!handleSocketOperation(sock, sa, requestBuffer, PACKET_SIZE, responseBuffer, PACKET_SIZE)) {
+	if (!handleSocketOperation(sock, sa, requestBuffer, MAX_PACKET_SIZE, responseBuffer, MAX_PACKET_SIZE)) {
 		return false;
 	}
 
-	recv(sock, responseBuffer, PACKET_SIZE, 0);
+	recv(sock, responseBuffer, MAX_PACKET_SIZE, 0);
 
 	res.unpackResponse(responseBuffer);
 
@@ -184,8 +184,8 @@ bool Client::sendPubKey(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, un
 
 	ClientRequest req;
 	ClientResponse res;
-	char responseBuffer[PACKET_SIZE] = { 0 };
-	char requestBuffer[PACKET_SIZE] = { 0 };
+	char responseBuffer[MAX_PACKET_SIZE] = { 0 };
+	char requestBuffer[MAX_PACKET_SIZE] = { 0 };
 
 	if (!addPrivkeyToMeFile(fileUtils, encoded_privkey))
 		return false;
@@ -200,23 +200,23 @@ bool Client::sendPubKey(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, un
 	// Close the file "priv.key"
 	fileUtils.closeFile(privFile);
 
-	if (username.length() >= USER_LENGTH) {
+	if (username.length() >= MAX_USER_LEN) {
 		std::cout << "Username is too long. " << std::endl;
 		return false;
 	}
 
-	req._request.URequestHeader.SRequestHeader.payload_size = username.length() + 1 + PUB_KEY_LEN;
+	req._request.URequestHeader.SRequestHeader.payload_size = username.length() + 1 + MAX_PUBKEY_LEN;
 	req._request.payload = new char[req._request.URequestHeader.SRequestHeader.payload_size];
-	memcpy(req._request.URequestHeader.SRequestHeader.cliend_id, uuid, CLIENT_ID_SIZE);
+	memcpy(req._request.URequestHeader.SRequestHeader.cliend_id, uuid, MAX_ID_SIZE);
 	memcpy(req._request.payload, username.c_str(), username.length() + 1);
-	memcpy(req._request.payload + username.length() + 1, pubkey.c_str(), PUB_KEY_LEN);
+	memcpy(req._request.payload + username.length() + 1, pubkey.c_str(), MAX_PUBKEY_LEN);
 	req._request.URequestHeader.SRequestHeader.code = PUB_KEY_SEND;
 
 	req.packRequest(requestBuffer);
 
 	std::cout << "Sending Public Key for " << username << ".." << std::endl;
 
-	if (!handleSocketOperation(sock, sa, requestBuffer, PACKET_SIZE, responseBuffer, PACKET_SIZE)) {
+	if (!handleSocketOperation(sock, sa, requestBuffer, MAX_PACKET_SIZE, responseBuffer, MAX_PACKET_SIZE)) {
 		return false;
 	}
 
@@ -230,9 +230,9 @@ bool Client::sendPubKey(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, un
 		RSAPrivateWrapper rsapriv_other(rsapriv.getPrivateKey());
 		char encryptedAESKey[ENC_AES_LEN] = { 0 };
 
-		memcpy(encryptedAESKey, res._response.payload + CLIENT_ID_SIZE, ENC_AES_LEN);
+		memcpy(encryptedAESKey, res._response.payload + MAX_ID_SIZE, ENC_AES_LEN);
 		std::string decryptedAESKey = rsapriv_other.decrypt(encryptedAESKey, ENC_AES_LEN);
-		memcpy(AESKey, decryptedAESKey.c_str(), AES_KEY_LEN);
+		memcpy(AESKey, decryptedAESKey.c_str(), MAX_AES_LEN);
 
 		return true;
 	}
@@ -251,7 +251,7 @@ bool Client::addUserToMeFile(utils fileUtils, std::string& username, ClientRespo
 	fileUtils.closeFile(newFile);
 
 	std::cout << "Updated ME INFO file with name and UUID." << std::endl;
-	memcpy(uuid, res._response.payload, CLIENT_ID_SIZE);
+	memcpy(uuid, res._response.payload, MAX_ID_SIZE);
 	return true;
 }
 
@@ -283,7 +283,7 @@ bool Client::decryptAESKey(utils fileUtils, const char* uuid, const char* encryp
 	// Read the encoded private key from priv.key
 	std::string encoded_privkey = "";
 	std::string temp_privkey_line = "";
-	for (int i = 0; i < PRIV_KEY_LINES; i++) {
+	for (int i = 0; i < PRIVKEY_LINES; i++) {
 		std::getline(privFile, temp_privkey_line);
 		encoded_privkey += temp_privkey_line;
 	}
@@ -299,7 +299,7 @@ bool Client::decryptAESKey(utils fileUtils, const char* uuid, const char* encryp
 		// Decrypt the encrypted AES key using the private key
 		std::string decryptedAESKey = rsapriv.decrypt(encryptedAESKey, ENC_AES_LEN);
 		// Copy the decrypted AES key to AESKey buffer
-		memcpy(AESKey, decryptedAESKey.c_str(), AES_KEY_LEN);
+		memcpy(AESKey, decryptedAESKey.c_str(), MAX_AES_LEN);
 	}
 	catch (const std::exception& e) {
 		// Catch and handle the exception
@@ -313,9 +313,9 @@ bool Client::decryptAESKey(utils fileUtils, const char* uuid, const char* encryp
 /* The function handles sending a file over to the server. */
 bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char* username, char* uuid, std::string filename, char* EncryptedAESKey, bool isNewUser) const
 {
-	unsigned char AESKey[AES_KEY_LEN] = { 0 };
+	unsigned char AESKey[MAX_AES_LEN] = { 0 };
 	std::fstream requestedFile;
-	char requestBuffer[PACKET_SIZE] = { 0 };
+	char requestBuffer[MAX_PACKET_SIZE] = { 0 };
 
 
 	if (isNewUser) {
@@ -336,21 +336,21 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 
 	ClientRequest req;
 	uint32_t fileSize = fileUtils.getSize(filename);
-	uint32_t contentSize = fileSize + (AES_BLOCK_SIZE - fileSize % AES_BLOCK_SIZE); // After encryption
-	req._request.URequestHeader.SRequestHeader.payload_size = contentSize + FILE_NAME_LEN + sizeof(uint32_t);
+	uint32_t contentSize = fileSize + (MAX_AES_SIZE - fileSize % MAX_AES_SIZE); // After encryption
+	req._request.URequestHeader.SRequestHeader.payload_size = contentSize + MAX_FILE_LEN + sizeof(uint32_t);
 	uint32_t payloadSize = req._request.URequestHeader.SRequestHeader.payload_size;
 	req._request.payload = new char[payloadSize];
 	memset(req._request.payload, 0, payloadSize);
-	memcpy(req._request.URequestHeader.SRequestHeader.cliend_id, uuid, CLIENT_ID_SIZE);
+	memcpy(req._request.URequestHeader.SRequestHeader.cliend_id, uuid, MAX_ID_SIZE);
 	req._request.URequestHeader.SRequestHeader.code = FILE_SEND;
 
-	uint32_t currPayload = payloadSize < PACKET_SIZE - req.offset() ? payloadSize : PACKET_SIZE - req.offset();
+	uint32_t currPayload = payloadSize < MAX_PACKET_SIZE - req.offset() ? payloadSize : MAX_PACKET_SIZE - req.offset();
 
 	char* payloadPtr = req._request.payload;
 	memcpy(payloadPtr, &contentSize, sizeof(uint32_t));
 	payloadPtr += sizeof(uint32_t);
 	memcpy(payloadPtr, filename.c_str(), filename.length());
-	payloadPtr += FILE_NAME_LEN;
+	payloadPtr += MAX_FILE_LEN;
 
 	// Read File into Payload
 	std::string filepath = "./" + filename; // We assume the file is in current dir
@@ -364,7 +364,7 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 	digest.update((unsigned char*)payloadPtr, fileSize);
 	uint32_t checksum = digest.digest();
 
-	AESWrapper wrapper(AESKey, AES_KEY_LEN);
+	AESWrapper wrapper(AESKey, MAX_AES_LEN);
 	std::string tmpEncryptedData = wrapper.encrypt(payloadPtr, fileSize);
 	memcpy(payloadPtr, tmpEncryptedData.c_str(), tmpEncryptedData.length());
 
@@ -373,22 +373,22 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 
 	while (tries < MAX_TRIES && !crc_confirmed) {
 		req.packRequest(requestBuffer);
-		send(sock, requestBuffer, PACKET_SIZE, 0); // 1028
+		send(sock, requestBuffer, MAX_PACKET_SIZE, 0); // 1028
 
 		uint32_t sizeLeft = payloadSize - currPayload;
 		payloadPtr = req._request.payload + currPayload;
 		while (sizeLeft > 0) {
-			memset(requestBuffer, 0, PACKET_SIZE);
-			currPayload = sizeLeft < PACKET_SIZE ? sizeLeft : PACKET_SIZE;
+			memset(requestBuffer, 0, MAX_PACKET_SIZE);
+			currPayload = sizeLeft < MAX_PACKET_SIZE ? sizeLeft : MAX_PACKET_SIZE;
 			memcpy(requestBuffer, payloadPtr, currPayload);
-			send(sock, requestBuffer, PACKET_SIZE, 0);
+			send(sock, requestBuffer, MAX_PACKET_SIZE, 0);
 
 			sizeLeft -= currPayload;
 			payloadPtr += currPayload;
 		} // Finish sending file
 
-		char buffer[PACKET_SIZE] = { 0 };
-		recv(sock, buffer, PACKET_SIZE, 0); // Expecting Code 2103
+		char buffer[MAX_PACKET_SIZE] = { 0 };
+		recv(sock, buffer, MAX_PACKET_SIZE, 0); // Expecting Code 2103
 
 		ClientResponse res;
 		res.unpackResponse(buffer);
@@ -401,7 +401,7 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 		std::cout << "Server received file successfull! checking checksum.." << std::endl;
 
 		uint32_t received_checksum;
-		memcpy(&received_checksum, res._response.payload + sizeof(uint32_t) + FILE_NAME_LEN, sizeof(uint32_t));
+		memcpy(&received_checksum, res._response.payload + sizeof(uint32_t) + MAX_FILE_LEN, sizeof(uint32_t));
 
 		if (checksum == received_checksum) {
 			crc_confirmed = true;
@@ -417,18 +417,18 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 		if (tries == MAX_TRIES)
 			newReq._request.URequestHeader.SRequestHeader.code = CRC_INVALID_EXIT;
 
-		newReq._request.URequestHeader.SRequestHeader.payload_size = FILE_NAME_LEN;
-		newReq._request.payload = new char[FILE_NAME_LEN];
+		newReq._request.URequestHeader.SRequestHeader.payload_size = MAX_FILE_LEN;
+		newReq._request.payload = new char[MAX_FILE_LEN];
 		memcpy(newReq._request.payload, filename.c_str(), filename.length());
-		memcpy(newReq._request.URequestHeader.SRequestHeader.cliend_id, uuid, CLIENT_ID_SIZE);
-		memset(requestBuffer, 0, PACKET_SIZE);
+		memcpy(newReq._request.URequestHeader.SRequestHeader.cliend_id, uuid, MAX_ID_SIZE);
+		memset(requestBuffer, 0, MAX_PACKET_SIZE);
 		newReq.packRequest(requestBuffer);
-		send(sock, requestBuffer, PACKET_SIZE, 0);
+		send(sock, requestBuffer, MAX_PACKET_SIZE, 0);
 	}
 
 	try {
-		char buffer[PACKET_SIZE] = { 0 };
-		recv(sock, buffer, PACKET_SIZE, 0); // Expecting Code 2104
+		char buffer[MAX_PACKET_SIZE] = { 0 };
+		recv(sock, buffer, MAX_PACKET_SIZE, 0); // Expecting Code 2104
 
 		ClientResponse res;
 		res.unpackResponse(buffer);
