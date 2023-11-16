@@ -107,7 +107,7 @@ bool Client::loginUser(const SOCKET& sock, struct sockaddr_in* sa, char* usernam
 	}
 
 	else if (res._response.UResponseHeader.SResponseHeader.code == LOGIN_ERROR) {
-		std::cerr << "-F- Failed to login, this user needs to be registered!" << std::endl;
+		std::cerr << "Warning: Login atttemp failed, this user needs to be registered!" << std::endl;
 		std::cerr << "Trying to Register " << username << " as a new user.." << std::endl;
 		closesocket(sock);
 	}
@@ -274,13 +274,12 @@ bool Client::decryptAESKey(utils fileUtils, const char* uuid, const char* encryp
 	RSAPrivateWrapper rsapriv2;
 	std::fstream privFile;
 
-	// Open the priv.key file
 	if (!fileUtils.openFile(PRIV_KEY, privFile, false)) {
 		std::cerr << "-F- Failed to open priv.key file." << std::endl;
 		return false;
 	}
 
-	// Read the encoded private key from priv.key
+	// Read the encoded priv key from priv.key
 	std::string encoded_privkey = "";
 	std::string temp_privkey_line = "";
 	for (int i = 0; i < PRIVKEY_LINES; i++) {
@@ -310,7 +309,7 @@ bool Client::decryptAESKey(utils fileUtils, const char* uuid, const char* encryp
 	return true;
 }
 
-/* The function handles sending a file over to the server. */
+// sending a file to the server.
 bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char* username, char* uuid, std::string filename, char* EncryptedAESKey, bool isNewUser) const
 {
 	unsigned char AESKey[MAX_AES_LEN] = { 0 };
@@ -352,14 +351,14 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 	memcpy(payloadPtr, filename.c_str(), filename.length());
 	payloadPtr += MAX_FILE_LEN;
 
-	// Read File into Payload
-	std::string filepath = "./" + filename; // We assume the file is in current dir
+	// Read File into payload, assuming the file is in the current dir.
+	std::string filepath = "./" + filename;
 	fileUtils.openBinaryFile(filepath, requestedFile, false);
 	fileUtils.readFileIntoBuffer(requestedFile, payloadPtr, fileSize);
 	fileUtils.closeFile(requestedFile);
 
 
-	// Calculate checksum of file before encryption
+	//Checksum calculation
 	CRC32 digest;
 	digest.update((unsigned char*)payloadPtr, fileSize);
 	uint32_t checksum = digest.digest();
@@ -373,7 +372,7 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 
 	while (tries < MAX_TRIES && !crc_confirmed) {
 		req.packRequest(requestBuffer);
-		send(sock, requestBuffer, MAX_PACKET_SIZE, 0); // 1028
+		send(sock, requestBuffer, MAX_PACKET_SIZE, 0);
 
 		uint32_t sizeLeft = payloadSize - currPayload;
 		payloadPtr = req._request.payload + currPayload;
@@ -385,10 +384,10 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 
 			sizeLeft -= currPayload;
 			payloadPtr += currPayload;
-		} // Finish sending file
+		}
 
 		char buffer[MAX_PACKET_SIZE] = { 0 };
-		recv(sock, buffer, MAX_PACKET_SIZE, 0); // Expecting Code 2103
+		recv(sock, buffer, MAX_PACKET_SIZE, 0);
 
 		ClientResponse res;
 		res.unpackResponse(buffer);
@@ -398,7 +397,7 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 			return false;
 		}
 
-		std::cout << "Server received file successfull! checking checksum.." << std::endl;
+		std::cout << "Server received file successfully! checking checksum.." << std::endl;
 
 		uint32_t received_checksum;
 		memcpy(&received_checksum, res._response.payload + sizeof(uint32_t) + MAX_FILE_LEN, sizeof(uint32_t));
@@ -408,8 +407,7 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 			std::cout << "Checksum matches!" << std::endl;
 		}
 		else {
-			tries++;
-			std::cout << "Checksum does not match: " << tries << "/3" << " tries." << std::endl;
+			std::cerr << "-F- Checksum did not match.. Trying again.." << std::endl;
 		}
 
 		ClientRequest newReq;
@@ -428,21 +426,21 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 
 	try {
 		char buffer[MAX_PACKET_SIZE] = { 0 };
-		recv(sock, buffer, MAX_PACKET_SIZE, 0); // Expecting Code 2104
+		recv(sock, buffer, MAX_PACKET_SIZE, 0);
 
 		ClientResponse res;
 		res.unpackResponse(buffer);
 		if (res._response.UResponseHeader.SResponseHeader.code == GENERAL_ERROR) {
-			std::cout << "-F- Server did not confirm receiving the message. " << std::endl;
+			std::cerr << "-F- Server did not receive the message. " << std::endl;
 			closesocket(sock);
 			return false;
 		}
 		else if (res._response.UResponseHeader.SResponseHeader.code == MSG_RECEIVED) {
-			std::cout << "The file was successfully (and safely) uploaded to the server." << std::endl;
+			std::cout << "Success! "<< filename<<" was successfully uploaded to the server!" << std::endl;
 		}
 	}
 	catch (std::exception& e) {
-		std::cerr << "Couldn't receive final answer. Exception: " << e.what() << std::endl;
+		std::cerr << "-F- Couldn't receive final answer. Exception: " << e.what() << std::endl;
 		closesocket(sock);
 		return false;
 	}
@@ -452,6 +450,7 @@ bool Client::sendFile(utils fileUtils, const SOCKET& sock, sockaddr_in* sa, char
 }
 
 bool Client::handleSocketOperation(const SOCKET& sock, struct sockaddr_in* sa, const char* requestData, size_t requestDataSize, char* responseData, size_t responseBufferSize) const {
+	//Connection
 	if (connect(sock, (struct sockaddr*)sa, sizeof(*sa)) != 0) {
 		std::cerr << "Connection failed." << std::endl;
 		return false;

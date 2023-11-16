@@ -34,10 +34,7 @@ int main() {
 	struct sockaddr_in sa = { 0 };
 	int ret = WSAStartup(MAKEWORD(2, 2), &wsaData); 	
 
-
-	//std::remove(ME_INFO);
-
-	// failure in an of the functions inside the try/catch will lead to error printing and cleaning andterminating the run.
+	// Failure in an of the functions inside the try/catch will lead to error printing and cleaning andterminating the run.
 	try{
 		// We check if any of the .info file exist, in order to initiate login or register.
 		newUser = client.getClientServerInfo(fileUtils, username, filename, ip_addr, port);
@@ -47,11 +44,10 @@ int main() {
 		inet_pton(AF_INET, ip_addr.c_str(), &sa.sin_addr);
 
 		if (!newUser) {
-			//TODO do I want to send empty pointer (last 3)?
 			sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 			login_status = client.loginUser(sock, &sa, username, uuid, AESEncrypted);
 		}
-		// trying to register if login failed or this is a new user.
+		// Trying to register if login failed or this is a new user.
 		if (!login_status or newUser) {
 			sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 			status = client.registerUser(fileUtils, sock, &sa, username, uuid);
@@ -67,11 +63,15 @@ int main() {
 
 	if (status) {
 		sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		login_status = client.sendFile(fileUtils, sock, &sa, username, uuid, filename, AESEncrypted, newUser);
+		status = client.sendFile(fileUtils, sock, &sa, username, uuid, filename, AESEncrypted, newUser);
 	}
 		WSACleanup();
 
-	if (status)
+	if (status) {
+		std::cout << "Run completed succsessfuly!" << std::endl;
 		return 0;
+	}
+	std::cerr << "-F- Run was not completed succsessfuly." << std::endl;
+
 	return 1;
 }
