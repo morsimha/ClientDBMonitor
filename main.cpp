@@ -68,10 +68,10 @@ int main() {
 		WSACleanup();
 
 	if (status) {
-		std::cout << "Run completed succsessfuly!" << std::endl;
+		std::cout << "Run completed successfully!" << std::endl;
 		return 0;
 	}
-	std::cerr << "-F- Run was not completed succsessfuly." << std::endl;
+	std::cerr << "-F- Run was not completed successfully." << std::endl;
 
 	return 1;
 }

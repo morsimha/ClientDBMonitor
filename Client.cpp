@@ -302,7 +302,7 @@ bool Client::decryptAESKey(utils fileUtils, const char* uuid, const char* encryp
 	}
 	catch (const std::exception& e) {
 		// Catch and handle the exception
-		std::cerr << "Failed generating AESKey, Please check if your priv.key matches the username and key stored in me.info.  " << std::endl;
+		std::cerr << "Failed generating AESKey, Please check if your priv.key matches the username and key stored in me.info. " << std::endl;
 		return false;
 	}
 

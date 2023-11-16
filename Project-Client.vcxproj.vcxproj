@@ -76,14 +76,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\morsimha\source\cryptopp;C:\cryptopp880</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\morsimha\source\cryptnew</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>C:\Users\morsimha\source\cryptopp\Win32\Output\Debug\cryptlib.lib</AdditionalDependencies>
+      <AdditionalDependencies>C:\Users\morsimha\source\cryptnew\Win32\Output\Debug\cryptlib.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>C:\Users\morsimha\source\cryptopp\\x64\Output\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -95,7 +95,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\morsimha\source\cryptopp;C:\cryptopp880</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\morsimha\source\cryptnew</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
@@ -104,7 +104,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>C:\Users\morsimha\source\cryptopp\Win32\Output\Debug\cryptlib.lib</AdditionalDependencies>
+      <AdditionalDependencies>C:\Users\morsimha\source\cryptnew\Win32\Output\Debug\cryptlib.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>C:\Users\morsimha\source\cryptopp\\x64\Output\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
