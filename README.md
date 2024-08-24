@@ -20,6 +20,6 @@ This project was made as a final university course - "Defensive System Developme
 - **Cryptographic Libraries:** Includes RSA and AES wrappers for encryption, along with Base64 encoding utilities.
 
 # Demo Video
-Watch the demo video below to see a Server/Client communication in action:
+Watch the demo video below by clicking on the image to see a Server/Client communication in action:
 
  [![Hangman Game Demo](https://img.youtube.com/vi/Bp3-0G_OEbI/0.jpg)](https://youtu.be/Bp3-0G_OEbI)”
