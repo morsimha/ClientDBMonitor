@@ -2,6 +2,10 @@
 
 ClientDBMonitor is a C++ application that provides a secure client for file transmission over a TCP/IP network. The client ensures data integrity and security using AES and RSA encryption, with Base64 encoding for handling binary data. The program supports user registration, authentication, and secure file transfer to a server.
 
+This server communicates with a python server I wrote - https://github.com/morsimha/ServerDBMonitor
+
+This project was made as a final university course - "Defensive System Development" , grade A+.
+
 ## Features
 
 - **User Authentication:** Supports user login and registration. If a user does not exist or login fails, the client automatically attempts to register the user.
