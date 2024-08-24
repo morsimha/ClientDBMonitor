@@ -2,7 +2,7 @@
 
 ClientDBMonitor is a C++ application that provides a secure client for file transmission over a TCP/IP network. The client ensures data integrity and security using AES and RSA encryption, with Base64 encoding for handling binary data. The program supports user registration, authentication, and secure file transfer to a server.
 
-This server communicates with a python server I wrote - https://github.com/morsimha/ServerDBMonitor
+This client communicates with a python server I wrote - https://github.com/morsimha/ServerDBMonitor
 
 This project was made as a final university course - "Defensive System Development" , grade A+.
 
@@ -18,3 +18,8 @@ This project was made as a final university course - "Defensive System Developme
 
 - **Windows OS:** The program is designed to run on Windows and depends on the WinSock2 library.
 - **Cryptographic Libraries:** Includes RSA and AES wrappers for encryption, along with Base64 encoding utilities.
+
+# Demo Video
+Watch the demo video below to see a Server/Client communication in action:
+
+ [![Hangman Game Demo](https://img.youtube.com/vi/Bp3-0G_OEbI/0.jpg)](https://youtu.be/Bp3-0G_OEbI)”
